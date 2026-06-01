@@ -1,0 +1,6 @@
+streamlit>=1.30.0
+pandas>=2.1.0
+mimesis>=11.0.0
+geopy>=2.4.0
+openpyxl>=3.1.0
+streamlit-flow-component>=0.1.0

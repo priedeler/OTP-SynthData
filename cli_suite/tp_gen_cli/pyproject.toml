@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tp-gen"
+version = "0.1.0"
+description = "Synthetic Transfer Pricing Data Generator CLI"
+requires-python = ">=3.9"
+dependencies = [
+    "typer[all]",
+    "rich",
+    "pandas",
+    "openpyxl",
+    "mimesis",
+    "python-dotenv",
+    "numpy"
+]
+
+[project.scripts]
+tp-gen = "tp_gen.main:app"

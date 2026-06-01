@@ -1,0 +1,250 @@
+﻿ISO3166-1-Alpha-3;ISO3166-1-Alpha-2;ISO4217-currency_name;ISO4217-currency_alphabetic_code;ISO4217-currency_country_name;Region Name;Continent;CLDR display name
+AFG;AF;Afghani;AFN;AFGHANISTAN;Asia;AS;Afghanistan
+ALA;AX;Euro;EUR;ÅLAND ISLANDS;Europe;EU;Åland Islands
+ALB;AL;Lek;ALL;ALBANIA;Europe;EU;Albania
+DZA;DZ;Algerian Dinar;DZD;ALGERIA;Africa;AF;Algeria
+ASM;AS;US Dollar;USD;AMERICAN SAMOA;Oceania;OC;American Samoa
+AND;AD;Euro;EUR;ANDORRA;Europe;EU;Andorra
+AGO;AO;Kwanza;AOA;ANGOLA;Africa;AF;Angola
+AIA;AI;East Caribbean Dollar;XCD;ANGUILLA;Americas;NA;Anguilla
+ATA;AQ;No universal currency;;ANTARCTICA;;AN;Antarctica
+ATG;AG;East Caribbean Dollar;XCD;ANTIGUA AND BARBUDA;Americas;NA;Antigua & Barbuda
+ARG;AR;Argentine Peso;ARS;ARGENTINA;Americas;SA;Argentina
+ARM;AM;Armenian Dram;AMD;ARMENIA;Asia;AS;Armenia
+ABW;AW;Aruban Florin;AWG;ARUBA;Americas;NA;Aruba
+AUS;AU;Australian Dollar;AUD;AUSTRALIA;Oceania;OC;Australia
+AUT;AT;Euro;EUR;AUSTRIA;Europe;EU;Austria
+AZE;AZ;Azerbaijan Manat;AZN;AZERBAIJAN;Asia;AS;Azerbaijan
+BHS;BS;Bahamian Dollar;BSD;BAHAMAS;Americas;NA;Bahamas
+BHR;BH;Bahraini Dinar;BHD;BAHRAIN;Asia;AS;Bahrain
+BGD;BD;Taka;BDT;BANGLADESH;Asia;AS;Bangladesh
+BRB;BB;Barbados Dollar;BBD;BARBADOS;Americas;NA;Barbados
+BLR;BY;Belarusian Ruble;BYN;BELARUS;Europe;EU;Belarus
+BEL;BE;Euro;EUR;BELGIUM;Europe;EU;Belgium
+BLZ;BZ;Belize Dollar;BZD;BELIZE;Americas;NA;Belize
+BEN;BJ;CFA Franc BCEAO;XOF;BENIN;Africa;AF;Benin
+BMU;BM;Bermudian Dollar;BMD;BERMUDA;Americas;NA;Bermuda
+BTN;BT;Indian Rupee,Ngultrum;INR,BTN;BHUTAN;Asia;AS;Bhutan
+BOL;BO;Boliviano;BOB;BOLIVIA (PLURINATIONAL STATE OF);Americas;SA;Bolivia
+BES;BQ;US Dollar;USD;BONAIRE, SINT EUSTATIUS AND SABA;Americas;NA;Caribbean Netherlands
+BIH;BA;Convertible Mark;BAM;BOSNIA AND HERZEGOVINA;Europe;EU;Bosnia
+BWA;BW;Pula;BWP;BOTSWANA;Africa;AF;Botswana
+BVT;BV;Norwegian Krone;NOK;BOUVET ISLAND;Americas;AN;Bouvet Island
+BRA;BR;Brazilian Real;BRL;BRAZIL;Americas;SA;Brazil
+IOT;IO;US Dollar;USD;BRITISH INDIAN OCEAN TERRITORY;Africa;AS;British Indian Ocean Territory
+VGB;VG;US Dollar;USD;VIRGIN ISLANDS (BRITISH);Americas;NA;British Virgin Islands
+BRN;BN;Brunei Dollar;BND;BRUNEI DARUSSALAM;Asia;AS;Brunei
+BGR;BG;Euro;EUR;BULGARIA;Europe;EU;Bulgaria
+BFA;BF;CFA Franc BCEAO;XOF;BURKINA FASO;Africa;AF;Burkina Faso
+BDI;BI;Burundi Franc;BIF;BURUNDI;Africa;AF;Burundi
+CPV;CV;Cabo Verde Escudo;CVE;CABO VERDE;Africa;AF;Cape Verde
+KHM;KH;Riel;KHR;CAMBODIA;Asia;AS;Cambodia
+CMR;CM;CFA Franc BEAC;XAF;CAMEROON;Africa;AF;Cameroon
+CAN;CA;Canadian Dollar;CAD;CANADA;Americas;NA;Canada
+CYM;KY;Cayman Islands Dollar;KYD;CAYMAN ISLANDS;Americas;NA;Cayman Islands
+CAF;CF;CFA Franc BEAC;XAF;CENTRAL AFRICAN REPUBLIC;Africa;AF;Central African Republic
+TCD;TD;CFA Franc BEAC;XAF;CHAD;Africa;AF;Chad
+CHL;CL;Chilean Peso;CLP;CHILE;Americas;SA;Chile
+CHN;CN;Yuan Renminbi;CNY;CHINA;Asia;AS;China
+HKG;HK;Hong Kong Dollar;HKD;HONG KONG;Asia;AS;Hong Kong
+MAC;MO;Pataca;MOP;MACAO;Asia;AS;Macao
+CXR;CX;Australian Dollar;AUD;CHRISTMAS ISLAND;Oceania;OC;Christmas Island
+CCK;CC;Australian Dollar;AUD;COCOS (KEELING) ISLANDS;Oceania;AS;Cocos Islands
+COL;CO;Colombian Peso;COP;COLOMBIA;Americas;SA;Colombia
+COM;KM;Comorian Franc ;KMF;COMOROS;Africa;AF;Comoros
+COG;CG;CFA Franc BEAC;XAF;CONGO;Africa;AF;Congo - Brazzaville
+COK;CK;New Zealand Dollar;NZD;COOK ISLANDS;Oceania;OC;Cook Islands
+CRI;CR;Costa Rican Colon;CRC;COSTA RICA;Americas;NA;Costa Rica
+HRV;HR;Euro;EUR;CROATIA;Europe;EU;Croatia
+CUB;CU;Cuban Peso;CUP;CUBA;Americas;NA;Cuba
+CUW;CW;Caribbean Guilder;XCG;CURAÇAO;Americas;NA;Curaçao
+CYP;CY;Euro;EUR;CYPRUS;Asia;EU;Cyprus
+CZE;CZ;Czech Koruna;CZK;CZECHIA;Europe;EU;Czechia
+PRK;KP;North Korean Won;KPW;KOREA (THE DEMOCRATIC PEOPLE’S REPUBLIC OF);Asia;AS;North Korea
+COD;CD;Congolese Franc;CDF;CONGO (THE DEMOCRATIC REPUBLIC OF THE);Africa;AF;Congo - Kinshasa
+DNK;DK;Danish Krone;DKK;DENMARK;Europe;EU;Denmark
+DJI;DJ;Djibouti Franc;DJF;DJIBOUTI;Africa;AF;Djibouti
+DMA;DM;East Caribbean Dollar;XCD;DOMINICA;Americas;NA;Dominica
+DOM;DO;Dominican Peso;DOP;DOMINICAN REPUBLIC;Americas;NA;Dominican Republic
+ECU;EC;US Dollar;USD;ECUADOR;Americas;SA;Ecuador
+EGY;EG;Egyptian Pound;EGP;EGYPT;Africa;AF;Egypt
+SLV;SV;El Salvador Colon,US Dollar;SVC,USD;EL SALVADOR;Americas;NA;El Salvador
+GNQ;GQ;CFA Franc BEAC;XAF;EQUATORIAL GUINEA;Africa;AF;Equatorial Guinea
+ERI;ER;Nakfa;ERN;ERITREA;Africa;AF;Eritrea
+EST;EE;Euro;EUR;ESTONIA;Europe;EU;Estonia
+SWZ;SZ;Lilangeni;SZL;ESWATINI;Africa;AF;Eswatini
+ETH;ET;Ethiopian Birr;ETB;ETHIOPIA;Africa;AF;Ethiopia
+FLK;FK;Falkland Islands Pound;FKP;FALKLAND ISLANDS [MALVINAS];Americas;SA;Falkland Islands
+FRO;FO;Danish Krone;DKK;FAROE ISLANDS;Europe;EU;Faroe Islands
+FJI;FJ;Fiji Dollar;FJD;FIJI;Oceania;OC;Fiji
+FIN;FI;Euro;EUR;FINLAND;Europe;EU;Finland
+FRA;FR;Euro;EUR;FRANCE;Europe;EU;France
+GUF;GF;Euro;EUR;FRENCH GUIANA;Americas;SA;French Guiana
+PYF;PF;CFP Franc;XPF;FRENCH POLYNESIA;Oceania;OC;French Polynesia
+ATF;TF;Euro;EUR;FRENCH SOUTHERN TERRITORIES;Africa;AN;French Southern Territories
+GAB;GA;CFA Franc BEAC;XAF;GABON;Africa;AF;Gabon
+GMB;GM;Dalasi;GMD;GAMBIA;Africa;AF;Gambia
+GEO;GE;Lari;GEL;GEORGIA;Asia;AS;Georgia
+DEU;DE;Euro;EUR;GERMANY;Europe;EU;Germany
+GHA;GH;Ghana Cedi;GHS;GHANA;Africa;AF;Ghana
+GIB;GI;Gibraltar Pound;GIP;GIBRALTAR;Europe;EU;Gibraltar
+GRC;GR;Euro;EUR;GREECE;Europe;EU;Greece
+GRL;GL;Danish Krone;DKK;GREENLAND;Americas;NA;Greenland
+GRD;GD;East Caribbean Dollar;XCD;GRENADA;Americas;NA;Grenada
+GLP;GP;Euro;EUR;GUADELOUPE;Americas;NA;Guadeloupe
+GUM;GU;US Dollar;USD;GUAM;Oceania;OC;Guam
+GTM;GT;Quetzal;GTQ;GUATEMALA;Americas;NA;Guatemala
+GGY;GG;Pound Sterling;GBP;GUERNSEY;Europe;EU;Guernsey
+GIN;GN;Guinean Franc;GNF;GUINEA;Africa;AF;Guinea
+GNB;GW;CFA Franc BCEAO;XOF;GUINEA-BISSAU;Africa;AF;Guinea-Bissau
+GUY;GY;Guyana Dollar;GYD;GUYANA;Americas;SA;Guyana
+HTI;HT;Gourde,US Dollar;HTG,USD;HAITI;Americas;NA;Haiti
+HMD;HM;Australian Dollar;AUD;HEARD ISLAND AND MCDONALD ISLANDS;Oceania;AN;Heard & McDonald Islands
+VAT;VA;Euro;EUR;HOLY SEE;Europe;EU;Vatican City
+HND;HN;Lempira;HNL;HONDURAS;Americas;NA;Honduras
+HUN;HU;Forint;HUF;HUNGARY;Europe;EU;Hungary
+ISL;IS;Iceland Krona;ISK;ICELAND;Europe;EU;Iceland
+IND;IN;Indian Rupee;INR;INDIA;Asia;AS;India
+IDN;ID;Rupiah;IDR;INDONESIA;Asia;AS;Indonesia
+IRN;IR;Iranian Rial;IRR;IRAN (ISLAMIC REPUBLIC OF);Asia;AS;Iran
+IRQ;IQ;Iraqi Dinar;IQD;IRAQ;Asia;AS;Iraq
+IRL;IE;Euro;EUR;IRELAND;Europe;EU;Ireland
+IMN;IM;Pound Sterling;GBP;ISLE OF MAN;Europe;EU;Isle of Man
+ISR;IL;New Israeli Sheqel;ILS;ISRAEL;Asia;AS;Israel
+ITA;IT;Euro;EUR;ITALY;Europe;EU;Italy
+CIV;CI;CFA Franc BCEAO;XOF;CÔTE D'IVOIRE;Africa;AF;Côte d’Ivoire
+JAM;JM;Jamaican Dollar;JMD;JAMAICA;Americas;NA;Jamaica
+JPN;JP;Yen;JPY;JAPAN;Asia;AS;Japan
+JEY;JE;Pound Sterling;GBP;JERSEY;Europe;EU;Jersey
+JOR;JO;Jordanian Dinar;JOD;JORDAN;Asia;AS;Jordan
+KAZ;KZ;Tenge;KZT;KAZAKHSTAN;Asia;AS;Kazakhstan
+KEN;KE;Kenyan Shilling;KES;KENYA;Africa;AF;Kenya
+KIR;KI;Australian Dollar;AUD;KIRIBATI;Oceania;OC;Kiribati
+KWT;KW;Kuwaiti Dinar;KWD;KUWAIT;Asia;AS;Kuwait
+KGZ;KG;Som;KGS;KYRGYZSTAN;Asia;AS;Kyrgyzstan
+LAO;LA;Lao Kip;LAK;LAO PEOPLE’S DEMOCRATIC REPUBLIC;Asia;AS;Laos
+LVA;LV;Euro;EUR;LATVIA;Europe;EU;Latvia
+LBN;LB;Lebanese Pound;LBP;LEBANON;Asia;AS;Lebanon
+LSO;LS;Loti,Rand;LSL,ZAR;LESOTHO;Africa;AF;Lesotho
+LBR;LR;Liberian Dollar;LRD;LIBERIA;Africa;AF;Liberia
+LBY;LY;Libyan Dinar;LYD;LIBYA;Africa;AF;Libya
+LIE;LI;Swiss Franc;CHF;LIECHTENSTEIN;Europe;EU;Liechtenstein
+LTU;LT;Euro;EUR;LITHUANIA;Europe;EU;Lithuania
+LUX;LU;Euro;EUR;LUXEMBOURG;Europe;EU;Luxembourg
+MDG;MG;Malagasy Ariary;MGA;MADAGASCAR;Africa;AF;Madagascar
+MWI;MW;Malawi Kwacha;MWK;MALAWI;Africa;AF;Malawi
+MYS;MY;Malaysian Ringgit;MYR;MALAYSIA;Asia;AS;Malaysia
+MDV;MV;Rufiyaa;MVR;MALDIVES;Asia;AS;Maldives
+MLI;ML;CFA Franc BCEAO;XOF;MALI;Africa;AF;Mali
+MLT;MT;Euro;EUR;MALTA;Europe;EU;Malta
+MHL;MH;US Dollar;USD;MARSHALL ISLANDS;Oceania;OC;Marshall Islands
+MTQ;MQ;Euro;EUR;MARTINIQUE;Americas;NA;Martinique
+MRT;MR;Ouguiya;MRU;MAURITANIA;Africa;AF;Mauritania
+MUS;MU;Mauritius Rupee;MUR;MAURITIUS;Africa;AF;Mauritius
+MYT;YT;Euro;EUR;MAYOTTE;Africa;AF;Mayotte
+MEX;MX;Mexican Peso;MXN;MEXICO;Americas;NA;Mexico
+FSM;FM;US Dollar;USD;MICRONESIA (FEDERATED STATES OF);Oceania;OC;Micronesia
+MCO;MC;Euro;EUR;MONACO;Europe;EU;Monaco
+MNG;MN;Tugrik;MNT;MONGOLIA;Asia;AS;Mongolia
+MNE;ME;Euro;EUR;MONTENEGRO;Europe;EU;Montenegro
+MSR;MS;East Caribbean Dollar;XCD;MONTSERRAT;Americas;NA;Montserrat
+MAR;MA;Moroccan Dirham;MAD;MOROCCO;Africa;AF;Morocco
+MOZ;MZ;Mozambique Metical;MZN;MOZAMBIQUE;Africa;AF;Mozambique
+MMR;MM;Kyat;MMK;MYANMAR;Asia;AS;Myanmar
+NAM;NA;Namibia Dollar,Rand;NAD,ZAR;NAMIBIA;Africa;AF;Namibia
+NRU;NR;Australian Dollar;AUD;NAURU;Oceania;OC;Nauru
+NPL;NP;Nepalese Rupee;NPR;NEPAL;Asia;AS;Nepal
+NLD;NL;Euro;EUR;NETHERLANDS;Europe;EU;Netherlands
+NCL;NC;CFP Franc;XPF;NEW CALEDONIA;Oceania;OC;New Caledonia
+NZL;NZ;New Zealand Dollar;NZD;NEW ZEALAND;Oceania;OC;New Zealand
+NIC;NI;Cordoba Oro;NIO;NICARAGUA;Americas;NA;Nicaragua
+NER;NE;CFA Franc BCEAO;XOF;NIGER;Africa;AF;Niger
+NGA;NG;Naira;NGN;NIGERIA;Africa;AF;Nigeria
+NIU;NU;New Zealand Dollar;NZD;NIUE;Oceania;OC;Niue
+NFK;NF;Australian Dollar;AUD;NORFOLK ISLAND;Oceania;OC;Norfolk Island
+MNP;MP;US Dollar;USD;NORTHERN MARIANA ISLANDS;Oceania;OC;Northern Mariana Islands
+MKD;MK;Denar;MKD;NORTH MACEDONIA;Europe;EU;North Macedonia
+NOR;NO;Norwegian Krone;NOK;NORWAY;Europe;EU;Norway
+OMN;OM;Rial Omani;OMR;OMAN;Asia;AS;Oman
+PAK;PK;Pakistan Rupee;PKR;PAKISTAN;Asia;AS;Pakistan
+PLW;PW;US Dollar;USD;PALAU;Oceania;OC;Palau
+PAN;PA;Balboa,US Dollar;PAB,USD;PANAMA;Americas;NA;Panama
+PNG;PG;Kina;PGK;PAPUA NEW GUINEA;Oceania;OC;Papua New Guinea
+PRY;PY;Guarani;PYG;PARAGUAY;Americas;SA;Paraguay
+PER;PE;Sol;PEN;PERU;Americas;SA;Peru
+PHL;PH;Philippine Peso;PHP;PHILIPPINES;Asia;AS;Philippines
+PCN;PN;New Zealand Dollar;NZD;PITCAIRN;Oceania;OC;Pitcairn
+POL;PL;Zloty;PLN;POLAND;Europe;EU;Poland
+PRT;PT;Euro;EUR;PORTUGAL;Europe;EU;Portugal
+PRI;PR;US Dollar;USD;PUERTO RICO;Americas;NA;Puerto Rico
+QAT;QA;Qatari Rial;QAR;QATAR;Asia;AS;Qatar
+KOR;KR;Won;KRW;KOREA (THE REPUBLIC OF);Asia;AS;South Korea
+MDA;MD;Moldovan Leu;MDL;MOLDOVA (THE REPUBLIC OF);Europe;EU;Moldova
+REU;RE;Euro;EUR;RÉUNION;Africa;AF;Réunion
+ROU;RO;Romanian Leu;RON;ROMANIA;Europe;EU;Romania
+RUS;RU;Russian Ruble;RUB;RUSSIAN FEDERATION;Europe;EU;Russia
+RWA;RW;Rwanda Franc;RWF;RWANDA;Africa;AF;Rwanda
+BLM;BL;Euro;EUR;SAINT BARTHÉLEMY;Americas;NA;St. Barthélemy
+SHN;SH;Saint Helena Pound;SHP;SAINT HELENA, ASCENSION AND TRISTAN DA CUNHA;Africa;AF;St. Helena
+KNA;KN;East Caribbean Dollar;XCD;SAINT KITTS AND NEVIS;Americas;NA;St. Kitts & Nevis
+LCA;LC;East Caribbean Dollar;XCD;SAINT LUCIA;Americas;NA;St. Lucia
+MAF;MF;Euro;EUR;SAINT MARTIN (FRENCH PART);Americas;NA;St. Martin
+SPM;PM;Euro;EUR;SAINT PIERRE AND MIQUELON;Americas;NA;St. Pierre & Miquelon
+VCT;VC;East Caribbean Dollar;XCD;SAINT VINCENT AND THE GRENADINES;Americas;NA;St. Vincent & Grenadines
+WSM;WS;Tala;WST;SAMOA;Oceania;OC;Samoa
+SMR;SM;Euro;EUR;SAN MARINO;Europe;EU;San Marino
+STP;ST;Dobra;STN;SAO TOME AND PRINCIPE;Africa;AF;São Tomé & Príncipe
+SAU;SA;Saudi Riyal;SAR;SAUDI ARABIA;Asia;AS;Saudi Arabia
+SEN;SN;CFA Franc BCEAO;XOF;SENEGAL;Africa;AF;Senegal
+SRB;RS;Serbian Dinar;RSD;SERBIA;Europe;EU;Serbia
+SYC;SC;Seychelles Rupee;SCR;SEYCHELLES;Africa;AF;Seychelles
+SLE;SL;Leone;SLE;SIERRA LEONE;Africa;AF;Sierra Leone
+SGP;SG;Singapore Dollar;SGD;SINGAPORE;Asia;AS;Singapore
+SXM;SX;Caribbean Guilder;XCG;SINT MAARTEN (DUTCH PART);Americas;NA;Sint Maarten
+SVK;SK;Euro;EUR;SLOVAKIA;Europe;EU;Slovakia
+SVN;SI;Euro;EUR;SLOVENIA;Europe;EU;Slovenia
+SLB;SB;Solomon Islands Dollar;SBD;SOLOMON ISLANDS;Oceania;OC;Solomon Islands
+SOM;SO;Somali Shilling;SOS;SOMALIA;Africa;AF;Somalia
+ZAF;ZA;Rand;ZAR;SOUTH AFRICA;Africa;AF;South Africa
+SGS;GS;No universal currency;;SOUTH GEORGIA AND THE SOUTH SANDWICH ISLANDS;Americas;AN;South Georgia & South Sandwich Islands
+SSD;SS;South Sudanese Pound;SSP;SOUTH SUDAN;Africa;AF;South Sudan
+ESP;ES;Euro;EUR;SPAIN;Europe;EU;Spain
+LKA;LK;Sri Lanka Rupee;LKR;SRI LANKA;Asia;AS;Sri Lanka
+PSE;PS;No universal currency;;PALESTINE, STATE OF;Asia;AS;Palestine
+SDN;SD;Sudanese Pound;SDG;SUDAN;Africa;AF;Sudan
+SUR;SR;Surinam Dollar;SRD;SURINAME;Americas;SA;Suriname
+SJM;SJ;Norwegian Krone;NOK;SVALBARD AND JAN MAYEN;Europe;EU;Svalbard & Jan Mayen
+SWE;SE;Swedish Krona;SEK;SWEDEN;Europe;EU;Sweden
+CHE;CH;Swiss Franc;CHF;SWITZERLAND;Europe;EU;Switzerland
+SYR;SY;Syrian Pound;SYP;SYRIAN ARAB REPUBLIC;Asia;AS;Syria
+TWN;TW;New Taiwan Dollar;TWD;TAIWAN (PROVINCE OF CHINA);Asia;AS;Taiwan
+TJK;TJ;Somoni;TJS;TAJIKISTAN;Asia;AS;Tajikistan
+THA;TH;Baht;THB;THAILAND;Asia;AS;Thailand
+TLS;TL;US Dollar;USD;TIMOR-LESTE;Asia;OC;Timor-Leste
+TGO;TG;CFA Franc BCEAO;XOF;TOGO;Africa;AF;Togo
+TKL;TK;New Zealand Dollar;NZD;TOKELAU;Oceania;OC;Tokelau
+TON;TO;Pa’anga;TOP;TONGA;Oceania;OC;Tonga
+TTO;TT;Trinidad and Tobago Dollar;TTD;TRINIDAD AND TOBAGO;Americas;NA;Trinidad & Tobago
+TUN;TN;Tunisian Dinar;TND;TUNISIA;Africa;AF;Tunisia
+TUR;TR;;;;Asia;AS;Türkiye
+TKM;TM;Turkmenistan New Manat;TMT;TURKMENISTAN;Asia;AS;Turkmenistan
+TCA;TC;US Dollar;USD;TURKS AND CAICOS ISLANDS;Americas;NA;Turks & Caicos Islands
+TUV;TV;Australian Dollar;AUD;TUVALU;Oceania;OC;Tuvalu
+UGA;UG;Uganda Shilling;UGX;UGANDA;Africa;AF;Uganda
+UKR;UA;Hryvnia;UAH;UKRAINE;Europe;EU;Ukraine
+ARE;AE;UAE Dirham;AED;UNITED ARAB EMIRATES;Asia;AS;United Arab Emirates
+GBR;GB;Pound Sterling;GBP;UNITED KINGDOM OF GREAT BRITAIN AND NORTHERN IRELAND;Europe;EU;UK
+TZA;TZ;Tanzanian Shilling;TZS;TANZANIA, UNITED REPUBLIC OF;Africa;AF;Tanzania
+UMI;UM;US Dollar;USD;UNITED STATES MINOR OUTLYING ISLANDS;Oceania;OC;U.S. Outlying Islands
+USA;US;US Dollar;USD;UNITED STATES OF AMERICA;Americas;NA;US
+VIR;VI;US Dollar;USD;VIRGIN ISLANDS (U.S.);Americas;NA;U.S. Virgin Islands
+URY;UY;Peso Uruguayo,Unidad Previsional;UYU,UYW;URUGUAY;Americas;SA;Uruguay
+UZB;UZ;Uzbekistan Sum;UZS;UZBEKISTAN;Asia;AS;Uzbekistan
+VUT;VU;Vatu;VUV;VANUATU;Oceania;OC;Vanuatu
+VEN;VE;Bolívar Soberano,Bolívar Soberano;VES,VED;VENEZUELA (BOLIVARIAN REPUBLIC OF);Americas;SA;Venezuela
+VNM;VN;Dong;VND;VIET NAM;Asia;AS;Vietnam
+WLF;WF;CFP Franc;XPF;WALLIS AND FUTUNA;Oceania;OC;Wallis & Futuna
+ESH;EH;Moroccan Dirham;MAD;WESTERN SAHARA;Africa;AF;Western Sahara
+YEM;YE;Yemeni Rial;YER;YEMEN;Asia;AS;Yemen
+ZMB;ZM;Zambian Kwacha;ZMW;ZAMBIA;Africa;AF;Zambia
+ZWE;ZW;Zimbabwe Gold;ZWG;ZIMBABWE;Africa;AF;Zimbabwe
