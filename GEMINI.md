@@ -25,6 +25,7 @@ The routing engine in `core_2.py` is designed to be "cascading." If a pool (Prin
 ## Critical Constraints
 *   **Symmetric IC Accounting**: Every IC Revenue row must have a matching IC Expense row. This is implemented in `generate_transactions` for both products and services.
 *   **Excel Schema**: Do not change dictionary keys in `sales_tx` or `opex_tx` without checking the Excel sheet names and column headers expected by the `calculate_allocations` function.
+*   **Automatic GitHub Sync**: After every major code change or task milestone, commit the changes and push them to GitHub (`origin/master` or `origin/main` as appropriate) automatically.
 
 ## Folder Structure
 - `/data`: Master data and templates.
