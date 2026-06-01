@@ -81,7 +81,7 @@ def generate_master_data():
     
     return df_pnl, df_segments
 
-def generate_config_data(companies_df, segments_df, role_counts=None, year=2025):
+def generate_config_data(companies_df, segments_df, role_counts=None, custom_benchmarks=None, year=2025):
     tp_segments = []
     
     if role_counts:
@@ -115,16 +115,19 @@ def generate_config_data(companies_df, segments_df, role_counts=None, year=2025)
         })
     df_c_tp_segment = pd.DataFrame(tp_segments)
 
-    benchmarks = [
-        {"TP Function": "Distributor - TNMM", "TP Method": "TNMM", "Price Setting": "Target", "PLI Name": "OM", "PLI Formula": "EBIT/Sales", "Q1": 0.02, "Median": 0.035, "Q3": 0.05, "Valid from": f"01.01.{year}", "Valid to": f"31.12.{year}", "User ID": "SYS"},
-        {"TP Function": "Distributor - RPM", "TP Method": "Resale Minus", "Price Setting": "Target", "PLI Name": "Gross Margin", "PLI Formula": "Gross Profit/Sales", "Q1": 0.15, "Median": 0.20, "Q3": 0.25, "Valid from": f"01.01.{year}", "Valid to": f"31.12.{year}", "User ID": "SYS"},
-        {"TP Function": "Routine Manufacturer", "TP Method": "TNMM", "Price Setting": "Target", "PLI Name": "NCP", "PLI Formula": "EBIT/Total Cost", "Q1": 0.05, "Median": 0.075, "Q3": 0.10, "Valid from": f"01.01.{year}", "Valid to": f"31.12.{year}", "User ID": "SYS"},
-        {"TP Function": "Service Provider", "TP Method": "TNMM", "Price Setting": "Target", "PLI Name": "Mark-up", "PLI Formula": "EBIT/Total Cost", "Q1": 0.03, "Median": 0.05, "Q3": 0.07, "Valid from": f"01.01.{year}", "Valid to": f"31.12.{year}", "User ID": "SYS"},
-        {"TP Function": "Cost Plus Manufacturer", "TP Method": "Cost Plus", "Price Setting": "Target", "PLI Name": "Gross Mark-up", "PLI Formula": "Gross Profit/COGS", "Q1": 0.10, "Median": 0.15, "Q3": 0.20, "Valid from": f"01.01.{year}", "Valid to": f"31.12.{year}", "User ID": "SYS"},
-        {"TP Function": "Commodity Trader", "TP Method": "CUP", "Price Setting": "Exact", "PLI Name": "Price", "PLI Formula": "Internal vs External", "Q1": 0.0, "Median": 0.0, "Q3": 0.0, "Valid from": f"01.01.{year}", "Valid to": f"31.12.{year}", "User ID": "SYS"},
-        {"TP Function": "IP Principal", "TP Method": "PSM", "Price Setting": "Split", "PLI Name": "Residual", "PLI Formula": "OPEX Allocation Key", "Q1": 0.0, "Median": 0.0, "Q3": 0.0, "Valid from": f"01.01.{year}", "Valid to": f"31.12.{year}", "User ID": "SYS"}
-    ]
-    df_benchmark = pd.DataFrame(benchmarks)
+    if custom_benchmarks is not None:
+        df_benchmark = custom_benchmarks.copy()
+    else:
+        benchmarks = [
+            {"TP Function": "Distributor - TNMM", "TP Method": "TNMM", "Price Setting": "Target", "PLI Name": "OM", "PLI Formula": "EBIT/Sales", "Q1": 0.02, "Median": 0.035, "Q3": 0.05, "Valid from": f"01.01.{year}", "Valid to": f"31.12.{year}", "User ID": "SYS"},
+            {"TP Function": "Distributor - RPM", "TP Method": "Resale Minus", "Price Setting": "Target", "PLI Name": "Gross Margin", "PLI Formula": "Gross Profit/Sales", "Q1": 0.15, "Median": 0.20, "Q3": 0.25, "Valid from": f"01.01.{year}", "Valid to": f"31.12.{year}", "User ID": "SYS"},
+            {"TP Function": "Routine Manufacturer", "TP Method": "TNMM", "Price Setting": "Target", "PLI Name": "NCP", "PLI Formula": "EBIT/Total Cost", "Q1": 0.05, "Median": 0.075, "Q3": 0.10, "Valid from": f"01.01.{year}", "Valid to": f"31.12.{year}", "User ID": "SYS"},
+            {"TP Function": "Service Provider", "TP Method": "TNMM", "Price Setting": "Target", "PLI Name": "Mark-up", "PLI Formula": "EBIT/Total Cost", "Q1": 0.03, "Median": 0.05, "Q3": 0.07, "Valid from": f"01.01.{year}", "Valid to": f"31.12.{year}", "User ID": "SYS"},
+            {"TP Function": "Cost Plus Manufacturer", "TP Method": "Cost Plus", "Price Setting": "Target", "PLI Name": "Gross Mark-up", "PLI Formula": "Gross Profit/COGS", "Q1": 0.10, "Median": 0.15, "Q3": 0.20, "Valid from": f"01.01.{year}", "Valid to": f"31.12.{year}", "User ID": "SYS"},
+            {"TP Function": "Commodity Trader", "TP Method": "CUP", "Price Setting": "Exact", "PLI Name": "Price", "PLI Formula": "Internal vs External", "Q1": 0.0, "Median": 0.0, "Q3": 0.0, "Valid from": f"01.01.{year}", "Valid to": f"31.12.{year}", "User ID": "SYS"},
+            {"TP Function": "IP Principal", "TP Method": "PSM", "Price Setting": "Split", "PLI Name": "Residual", "PLI Formula": "OPEX Allocation Key", "Q1": 0.0, "Median": 0.0, "Q3": 0.0, "Valid from": f"01.01.{year}", "Valid to": f"31.12.{year}", "User ID": "SYS"}
+        ]
+        df_benchmark = pd.DataFrame(benchmarks)
 
     indirect_alloc = []
     pnl_lines = ["Marketing", "R&D", "General Administration", "Logistics"]
@@ -139,7 +142,7 @@ def generate_config_data(companies_df, segments_df, role_counts=None, year=2025)
 
     return df_c_tp_segment, df_benchmark, df_indirect_alloc
 
-def generate_transactions(companies_df, materials_df, pnl_df, num_transactions, df_c_tp_segment, year=2025):
+def generate_transactions(companies_df, materials_df, pnl_df, num_transactions, df_c_tp_segment, year=2025, qty_max=100, service_fee_min=5000, service_fee_max=25000, opex_min=0.08, opex_max=0.35):
     sales_tx = []
     company_codes = companies_df["Company Code"].tolist()
     
@@ -166,7 +169,7 @@ def generate_transactions(companies_df, materials_df, pnl_df, num_transactions, 
 
     for flow_id in range(num_transactions):
         material = random.choice(materials_list)
-        qty = random.randint(1, 100)
+        qty = random.randint(1, int(qty_max))
         month = random.randint(1, 12)
         period = f"{str(month).zfill(2)}.{year}"
 
@@ -371,7 +374,7 @@ def generate_transactions(companies_df, materials_df, pnl_df, num_transactions, 
             seller = random.choice(service_providers)
             buyer = random.choice(principals) if principals else (random.choice(distributors) if distributors else random.choice(company_codes))
             
-            service_fee = round(random.uniform(5000, 25000), 2)
+            service_fee = round(random.uniform(service_fee_min, service_fee_max), 2)
             
             # Seller Revenue Row
             sales_tx.append({
@@ -439,16 +442,11 @@ def generate_transactions(companies_df, materials_df, pnl_df, num_transactions, 
     # OPEX transactions (Scaled to Revenue)
     opex_tx = []
     opex_accounts = [("600000", "Marketing"), ("610000", "R&D"), ("620000", "General Admin"), ("630000", "Logistics")]
-
-    for code in company_codes:
-        segment = co_to_segment.get(code)
-        revenue = revenue_tracker.get(code, 0)
-        if segment == "Service Provider":
-            annual_opex = random.uniform(10000, 35000)
-        elif revenue > 0:
-            annual_opex = revenue * random.uniform(0.08, 0.18)
-        else:
-            annual_opex = random.uniform(5000, 15000)
+    
+    for code, revenue in revenue_tracker.items():
+        segment = co_to_segment.get(code, "Unknown")
+        # Minimum OPEX if no revenue
+        annual_opex = revenue * random.uniform(opex_min, opex_max) if revenue > 0 else random.uniform(50000, 200000)
             
         amount_per_entry = annual_opex / (len(opex_accounts) * 12)
 

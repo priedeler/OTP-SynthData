@@ -131,18 +131,18 @@ def build_flow_state(companies_df, tp_roles_df=None, transactions_df=None):
     # Segment configuration
     segment_configs = {
         "Commodity Trader": {"x": 50, "style": {'backgroundColor': '#e0f7fa', 'border': '2px solid #00acc1', 'color': 'black'}},
-        "Service Provider": {"x": 250, "style": {'backgroundColor': '#f3e5f5', 'border': '2px solid #9c27b0', 'color': 'black'}},
-        "Contract Manufacturer": {"x": 250, "style": {'backgroundColor': '#e8f5e9', 'border': '2px solid #4caf50', 'color': 'black'}},
-        "IP Principal": {"x": 600, "style": {'backgroundColor': '#fff8e1', 'border': '2px solid #ffc107', 'color': 'black'}},
-        "Distributor": {"x": 950, "style": {'backgroundColor': '#e3f2fd', 'border': '2px solid #2196f3', 'color': 'black'}}
+        "Contract Manufacturer": {"x": 350, "style": {'backgroundColor': '#e8f5e9', 'border': '2px solid #4caf50', 'color': 'black'}},
+        "Service Provider": {"x": 350, "style": {'backgroundColor': '#f3e5f5', 'border': '2px solid #9c27b0', 'color': 'black'}},
+        "IP Principal": {"x": 700, "style": {'backgroundColor': '#fff8e1', 'border': '2px solid #ffc107', 'color': 'black'}},
+        "Distributor": {"x": 1050, "style": {'backgroundColor': '#e3f2fd', 'border': '2px solid #2196f3', 'color': 'black'}}
     }
     
     y_counters = {
-        "Commodity Trader": 0,
-        "Service Provider": 0,
-        "Contract Manufacturer": 300,  # Vertical gap
-        "IP Principal": 0,
-        "Distributor": 0
+        "Commodity Trader": 50,
+        "Contract Manufacturer": 50,
+        "Service Provider": 300,
+        "IP Principal": 100,
+        "Distributor": 50
     }
     
     # Role mapping
@@ -248,7 +248,7 @@ with tab1:
             filtered_countries = pd.DataFrame(columns=countries_df.columns)
 
         all_country_names = sorted(filtered_countries['CLDR display name'].dropna().unique().tolist())
-        default_countries = ["Germany", "France", "Switzerland", "Netherlands", "Spain"]
+        default_countries = ["Germany", "United States", "Japan", "Brazil", "Australia"]
         selected_countries = st.multiselect("2. Select Country(ies)", all_country_names, default=[c for c in default_countries if c in all_country_names])
 
     with col3:
@@ -262,7 +262,8 @@ with tab1:
             available_cities_df = pd.DataFrame(columns=cities_df.columns)
             available_city_names = []
 
-        default_cities = ["BERLIN", "PARIS", "BERNE", "AMSTERDAM", "MADRID"]
+        # Spread out European cities
+        default_cities = ["BERLIN", "MADRID", "ROME", "STOCKHOLM", "WARSAW"]
         selected_cities = st.multiselect("3. Select City(ies)", available_city_names, default=[c for c in default_cities if c in available_city_names])
 
     st.divider()
@@ -296,6 +297,15 @@ with tab1:
     with col_opt4:
         num_transactions_input = st.number_input("Number of Transactions", min_value=10, max_value=50000, value=1000)
 
+    st.write("**Advanced Simulation Parameters**")
+    adv_col1, adv_col2, adv_col3 = st.columns(3)
+    with adv_col1:
+        qty_max = st.slider("Max Qty per Transaction", min_value=10, max_value=5000, value=100)
+    with adv_col2:
+        opex_range = st.slider("OPEX % of Revenue Bounds", min_value=0.01, max_value=0.50, value=(0.08, 0.35), step=0.01)
+    with adv_col3:
+        service_fee_range = st.slider("Service Fee Bounds (EUR)", min_value=1000, max_value=100000, value=(5000, 25000), step=1000)
+
     if st.button("Generate Global Structure", type="primary"):
         if not countries_to_use:
             st.error("Please select at least one region or country.")
@@ -306,6 +316,13 @@ with tab1:
                 "manufacturers": num_manufacturers,
                 "service_providers": num_service_providers,
                 "traders": num_traders
+            }
+            st.session_state['sim_params'] = {
+                "qty_max": qty_max,
+                "opex_min": opex_range[0],
+                "opex_max": opex_range[1],
+                "service_fee_min": service_fee_range[0],
+                "service_fee_max": service_fee_range[1]
             }
             
             company_data = []
@@ -466,7 +483,7 @@ with tab3:
                 if 'tp_roles' in st.session_state and 'benchmark_data' in st.session_state:
                     df_c_tp_segment = st.session_state['tp_roles']
                     df_benchmark = st.session_state['benchmark_data']
-                    _, _, df_indirect_alloc = generate_config_data(export_df, df_tp_segments, role_counts=role_counts)
+                    _, _, df_indirect_alloc = generate_config_data(export_df, df_tp_segments, role_counts=role_counts, custom_benchmarks=df_benchmark)
                 else:
                     df_c_tp_segment, df_benchmark, df_indirect_alloc = generate_config_data(export_df, df_tp_segments, role_counts=role_counts)
                     st.session_state['tp_roles'] = df_c_tp_segment
@@ -478,7 +495,15 @@ with tab3:
                 df_mat_class = st.session_state['df_mat_class']
                 df_material = st.session_state['df_material']
 
-                df_sales_tx, df_opex_tx = generate_transactions(export_df, df_material, df_pnl, num_transactions_input, df_c_tp_segment)
+                sp = st.session_state.get('sim_params', {})
+                df_sales_tx, df_opex_tx = generate_transactions(
+                    export_df, df_material, df_pnl, num_transactions_input, df_c_tp_segment,
+                    qty_max=sp.get('qty_max', 100),
+                    service_fee_min=sp.get('service_fee_min', 5000),
+                    service_fee_max=sp.get('service_fee_max', 25000),
+                    opex_min=sp.get('opex_min', 0.08),
+                    opex_max=sp.get('opex_max', 0.35)
+                )
                 p_seg_sales, p_seg_opex, p_direct, p_indirect, p_total = calculate_allocations(df_sales_tx, df_opex_tx, export_df, df_benchmark, df_c_tp_segment, return_all=True)
                 
                 # Generate Transactional TP Adjustments
@@ -545,12 +570,13 @@ with tab3:
                         df.to_excel(writer, index=False, sheet_name=sheet_name)
 
                 st.session_state['last_report']['excel_data'] = output.getvalue()
+                st.session_state['data_dict'] = data_dict
                 st.success("Report successfully generated!")
 
         if 'last_report' in st.session_state:
             report = st.session_state['last_report']
             st.divider()
-            st.write("### 📊 Operational TP Analytics Dashboard")
+            st.write("### Operational TP Analytics Dashboard")
             
             # 1. Extract dataframes
             p_total = report['p_total'].copy()
@@ -623,30 +649,46 @@ with tab3:
             tax_saving = p_total["Tax Pre-Adj"].sum() - p_total["Tax Post-Adj"].sum()
 
             # Premium styled metric cards
-            st.write("#### 💸 Key Financial Totals")
+            st.markdown("""
+            <style>
+            div[data-testid="stMetricValue"] > div {
+                font-size: 1.5rem !important;
+                white-space: normal !important;
+                word-wrap: break-word;
+            }
+            </style>
+            """, unsafe_allow_html=True)
+            
+            def fmt_num(n):
+                if abs(n) >= 1_000_000_000: return f"{n/1_000_000_000:,.2f}B €"
+                if abs(n) >= 1_000_000: return f"{n/1_000_000:,.2f}M €"
+                if abs(n) >= 1_000: return f"{n/1_000:,.0f}K €"
+                return f"{n:,.0f} €"
+
+            st.write("#### Key Financial Totals")
             m_col1, m_col2, m_col3, m_col4, m_col5 = st.columns(5)
             with m_col1:
-                st.metric("Total Revenue", f"{report['metrics']['revenue']:,.2f} EUR")
+                st.metric("Total Revenue", fmt_num(report['metrics']['revenue']))
             with m_col2:
-                st.metric("Total OPEX", f"{report['metrics']['opex']:,.2f} EUR")
+                st.metric("Total OPEX", fmt_num(report['metrics']['opex']))
             with m_col3:
-                st.metric("System EBIT", f"{report['metrics']['ebit']:,.2f} EUR")
+                st.metric("System EBIT", fmt_num(report['metrics']['ebit']))
             with m_col4:
-                st.metric("Intercompany Volume", f"{report['metrics']['ic_volume']:,.2f} EUR")
+                st.metric("Intercompany Volume", fmt_num(report['metrics']['ic_volume']))
             with m_col5:
-                st.metric("Total TP True-ups", f"{report['metrics']['tp_adj_total']:,.2f} EUR")
+                st.metric("Total TP True-ups", fmt_num(report['metrics']['tp_adj_total']))
             
             # Dynamic Sanity Checks
             total_ic_rev = df_sales_tx[df_sales_tx["TypeOfSales"] == "IC"]["Total Amount Sales"].sum()
             total_ic_exp = df_sales_tx[df_sales_tx["GL Account COGS"] == "500000"]["Total Amount COGS"].abs().sum()
             ic_diff = abs(total_ic_rev - total_ic_exp)
-            ic_check = f"Passed (Diff: {ic_diff:,.2f} EUR)" if ic_diff < 1.0 else f"Failed (Diff: {ic_diff:,.2f} EUR)"
+            ic_check = f"Passed ({fmt_num(ic_diff)})" if ic_diff < 1.0 else f"Failed ({fmt_num(ic_diff)})"
             
             tp_adj_net = report['tp_adjustments']['Total Amount'].sum() if 'tp_adjustments' in report else 0.0
-            tp_check = f"{tp_adj_net:,.2f} EUR" if abs(tp_adj_net) >= 0.01 else "0.00 EUR (Balanced)"
+            tp_check = fmt_num(tp_adj_net) if abs(tp_adj_net) >= 0.01 else "0 € (Bal)"
 
-            # Validation Metrics Panel (As requested: all important metrics to see if data makes sense right away)
-            st.write("#### 🛡️ Operational TP Data Sanity & Validation Panel")
+            # Validation Metrics Panel
+            st.write("#### Operational TP Data Sanity & Validation Panel")
             v_col1, v_col2, v_col3, v_col4 = st.columns(4)
             with v_col1:
                 st.metric("Symmetric IC Accounting Check", ic_check, help="Verifies that total Intercompany Revenue matches Intercompany Expense across all companies.")
@@ -655,7 +697,7 @@ with tab3:
             with v_col3:
                 st.metric("Total True-ups Net Effect", tp_check, help="Symmetric TP Adjustments net to zero at the group level, confirming no profit is lost.")
             with v_col4:
-                st.metric("Tax Arbitrage Net Effect", f"{tax_saving:,.2f} EUR", help="Group-wide tax savings/cost shift pre-adjustment vs post-adjustment.")
+                st.metric("Tax Arbitrage Net Effect", fmt_num(tax_saving), help="Group-wide tax savings/cost shift pre-adjustment vs post-adjustment.")
             
             # Draw charts
             st.write("#### Consolidated Profitability & Compliance")
@@ -801,7 +843,7 @@ with tab3:
                     layers=[layer],
                     initial_view_state=view_state,
                     tooltip={"text": "{tooltip}"},
-                    map_style="mapbox://styles/mapbox/dark-v10"
+                    map_style=None
                 )
                 st.pydeck_chart(r_map)
             else:
@@ -882,8 +924,13 @@ with tab3:
                 st.plotly_chart(fig_tax, use_container_width=True)
 
             st.divider()
-            file_name = f"OTP_Data_{report['timestamp']}.xlsx"
-            st.download_button(label=f"💾 Download SAP PaPM-Ready Dataset ('{file_name}')", data=report['excel_data'], file_name=file_name, mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", type="primary")
+            col_d1, col_d2 = st.columns(2)
+            with col_d1:
+                file_name = f"OTP_Data_{report['timestamp']}.xlsx"
+                st.download_button(label=f"Download SAP PaPM Dataset ('{file_name}')", data=report['excel_data'], file_name=file_name, mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", type="primary")
+            with col_d2:
+                csv_data = df_comp.to_csv(index=False).encode('utf-8')
+                st.download_button(label=f"Download Dashboard Data (CSV)", data=csv_data, file_name=f"OTP_Dashboard_{report['timestamp']}.csv", mime="text/csv", type="secondary")
     else:
         st.info("Generate data in Tab 1 first to enable export and analytics.")
 
@@ -902,7 +949,15 @@ with tab4:
         if 'flow_state' not in st.session_state:
             export_df = st.session_state['company_data'].copy()
             df_pnl, _ = generate_master_data()
-            df_sales_tx, _ = generate_transactions(export_df, st.session_state['df_material'], df_pnl, num_transactions_input, st.session_state['tp_roles'])
+            sp = st.session_state.get('sim_params', {})
+            df_sales_tx, _ = generate_transactions(
+                export_df, st.session_state['df_material'], df_pnl, num_transactions_input, st.session_state['tp_roles'],
+                qty_max=sp.get('qty_max', 100),
+                service_fee_min=sp.get('service_fee_min', 5000),
+                service_fee_max=sp.get('service_fee_max', 25000),
+                opex_min=sp.get('opex_min', 0.08),
+                opex_max=sp.get('opex_max', 0.35)
+            )
             st.session_state.flow_state = build_flow_state(export_df, st.session_state['tp_roles'], df_sales_tx)
 
         st.session_state.flow_state = streamlit_flow('tp_network_flow', state=st.session_state.flow_state, fit_view=True, height=500, enable_pane_menu=True, enable_node_menu=True, enable_edge_menu=True, pan_on_drag=True, allow_zoom=True)
@@ -915,7 +970,15 @@ with tab4:
             if st.button("Apply Roles to Flow"):
                 export_df = st.session_state['company_data'].copy()
                 df_pnl, _ = generate_master_data()
-                df_sales_tx, _ = generate_transactions(export_df, st.session_state['df_material'], df_pnl, num_transactions_input, st.session_state['tp_roles'])
+                sp = st.session_state.get('sim_params', {})
+                df_sales_tx, _ = generate_transactions(
+                    export_df, st.session_state['df_material'], df_pnl, num_transactions_input, st.session_state['tp_roles'],
+                    qty_max=sp.get('qty_max', 100),
+                    service_fee_min=sp.get('service_fee_min', 5000),
+                    service_fee_max=sp.get('service_fee_max', 25000),
+                    opex_min=sp.get('opex_min', 0.08),
+                    opex_max=sp.get('opex_max', 0.35)
+                )
                 st.session_state.flow_state = build_flow_state(export_df, st.session_state['tp_roles'], df_sales_tx)
                 st.rerun()
 
