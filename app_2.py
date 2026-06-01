@@ -540,8 +540,9 @@ with tab3:
                 }
 
                 output = io.BytesIO()
-                # Use our read-only template preservation helper function
-                save_report_to_template("data/OTP_Template.xlsx", output, data_dict)
+                with pd.ExcelWriter(output, engine='openpyxl') as writer:
+                    for sheet_name, df in data_dict.items():
+                        df.to_excel(writer, index=False, sheet_name=sheet_name)
 
                 st.session_state['last_report']['excel_data'] = output.getvalue()
                 st.success("Report successfully generated!")
@@ -558,7 +559,7 @@ with tab3:
             export_df = report['companies'].copy()
             
             # 2. Pre-calculate compliance rates
-            df_comp = p_total.merge(df_benchmark[["TP Function", "Q1", "Q3", "PLI Name"]], left_on="TP Segment", right_on="TP Function", how="left")
+            df_comp = p_total.merge(df_benchmark[["TP Function", "Q1", "Q3"]], left_on="TP Segment", right_on="TP Function", how="left")
             pre_margins = []
             post_margins = []
             companies_list = []
@@ -608,7 +609,7 @@ with tab3:
             # 3. Pre-calculate tax arbitrage
             countries_df_cit, _ = load_data()
             try:
-                cit_df = pd.read_csv("data/CIT Rate Europe.csv", sep=";")
+                cit_df = pd.read_csv("data/CIT Rate Europe.csv")
             except FileNotFoundError:
                 cit_df = pd.DataFrame()
             co_to_iso2 = dict(zip(countries_df_cit["ISO3166-1-Alpha-3"], countries_df_cit["ISO3166-1-Alpha-2"]))
