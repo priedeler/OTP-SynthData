@@ -248,7 +248,8 @@ with tab1:
             filtered_countries = pd.DataFrame(columns=countries_df.columns)
 
         all_country_names = sorted(filtered_countries['CLDR display name'].dropna().unique().tolist())
-        selected_countries = st.multiselect("2. Select Country(ies)", all_country_names)
+        default_countries = ["Germany", "France", "Switzerland", "Netherlands", "Spain"]
+        selected_countries = st.multiselect("2. Select Country(ies)", all_country_names, default=[c for c in default_countries if c in all_country_names])
 
     with col3:
         countries_to_use = selected_countries if selected_countries else all_country_names
@@ -261,7 +262,8 @@ with tab1:
             available_cities_df = pd.DataFrame(columns=cities_df.columns)
             available_city_names = []
 
-        selected_cities = st.multiselect("3. Select City(ies)", available_city_names)
+        default_cities = ["BERLIN", "PARIS", "BERNE", "AMSTERDAM", "MADRID"]
+        selected_cities = st.multiselect("3. Select City(ies)", available_city_names, default=[c for c in default_cities if c in available_city_names])
 
     st.divider()
 
@@ -292,7 +294,7 @@ with tab1:
     with col_opt3:
         num_materials_input = st.number_input("Number of Materials", min_value=1, max_value=5000, value=20)
     with col_opt4:
-        num_transactions_input = st.number_input("Number of Transactions", min_value=10, max_value=50000, value=100)
+        num_transactions_input = st.number_input("Number of Transactions", min_value=10, max_value=50000, value=1000)
 
     if st.button("Generate Global Structure", type="primary"):
         if not countries_to_use:
@@ -349,11 +351,23 @@ with tab1:
                 progress_bar.progress(i / num_companies, text=f"Generating companies... ({i}/{num_companies})")
 
             st.session_state['company_data'] = pd.DataFrame(company_data)
+            
+            # Pre-populate coordinates mapping
+            company_coords = {}
+            map_coords = []
+            for _, row in st.session_state['company_data'].iterrows():
+                c_lat, c_lon = get_coordinates(row['City'], row['Country Name'])
+                if c_lat and c_lon:
+                    company_coords[row['Company Code']] = (c_lat, c_lon)
+                    map_coords.append({'lat': c_lat, 'lon': c_lon})
+            st.session_state['company_coords'] = company_coords
+            st.session_state['map_coords'] = map_coords
+
             df_mat_class, df_material = generate_materials(num_materials_input)
             st.session_state['df_mat_class'] = df_mat_class
             st.session_state['df_material'] = df_material
 
-            for key in ['map_coords', 'flow_state', 'tp_roles', 'benchmark_data']:
+            for key in ['flow_state', 'tp_roles', 'benchmark_data']:
                 if key in st.session_state: del st.session_state[key]
 
             progress_bar.empty()
@@ -396,11 +410,15 @@ with tab1:
                         edited_df.at[idx, 'Co Currency'] = "EUR" if pd.isna(currency) else str(currency).split(',')[0]
 
                 st.session_state['company_data'] = edited_df
+                company_coords = {}
                 map_coords = []
-                unique_locations = edited_df[['City', 'Country Name']].drop_duplicates().head(30)
-                for _, row in unique_locations.iterrows():
+                for _, row in edited_df.iterrows():
+                    code = row['Company Code']
                     c_lat, c_lon = get_coordinates(row['City'], row['Country Name'])
-                    if c_lat and c_lon: map_coords.append({'lat': c_lat, 'lon': c_lon})
+                    if c_lat and c_lon:
+                        company_coords[code] = (c_lat, c_lon)
+                        map_coords.append({'lat': c_lat, 'lon': c_lon})
+                st.session_state['company_coords'] = company_coords
                 st.session_state['map_coords'] = map_coords
                 st.rerun()
 
@@ -461,7 +479,7 @@ with tab3:
                 df_material = st.session_state['df_material']
 
                 df_sales_tx, df_opex_tx = generate_transactions(export_df, df_material, df_pnl, num_transactions_input, df_c_tp_segment)
-                p_total = calculate_allocations(df_sales_tx, df_opex_tx, export_df, df_benchmark, df_c_tp_segment)
+                p_seg_sales, p_seg_opex, p_direct, p_indirect, p_total = calculate_allocations(df_sales_tx, df_opex_tx, export_df, df_benchmark, df_c_tp_segment, return_all=True)
                 
                 # Generate Transactional TP Adjustments
                 df_tp_adjustments = generate_tp_adjustments(df_sales_tx, df_opex_tx, export_df, p_total, df_c_tp_segment, year=2025)
@@ -483,21 +501,47 @@ with tab3:
                     'companies': export_df
                 }
 
+                # Construct P_Total Allocation template structure matching the Excel headers
+                p_total_template = p_total.copy()
+                p_total_template = p_total_template.merge(export_df[["Company Code", "Region"]], on="Company Code", how="left")
+                p_total_template["CoCo"] = p_total_template["Company Code"]
+                p_total_template["Year"] = 2025
+                p_total_template["PeriodRange"] = "12.2025"
+                p_total_template["Total Sales"] = p_total_template["Revenue"]
+                p_total_template["Total Amount Sales"] = p_total_template["Revenue"]
+                p_total_template["Total COGS"] = p_total_template["COGS"]
+                p_total_template["Total Amount COGS"] = -p_total_template["COGS"]
+                p_total_template["EBIT"] = p_total_template["Final Operating Profit"]
+                p_total_template["TP Function"] = p_total_template["TP Segment"]
+                p_total_template["Sales Quatity"] = p_total_template["Sales Quantity"]
+                p_total_template["RUNIT"] = p_total_template["Co Currency"] if "Co Currency" in p_total_template.columns else "EUR"
+                p_total_template["GlobalCurrency"] = "EUR"
+
+                # Combine OPEX with TP Adjustments dynamically for SD_Financials_OPEX sheet
+                df_opex_combined = pd.concat([df_opex_tx, df_tp_adjustments], ignore_index=True)
+
+                data_dict = {
+                    'Company Info': final_company_info,
+                    'Region Mapping': final_region_mapping,
+                    'TPMD_PnL': df_pnl,
+                    'TPMD_MaterialTypeClass': df_mat_class,
+                    'TPMD_TPsegment': df_c_tp_segment[["Company Code", "TP Segment"]],
+                    'TPMD_Material': df_material,
+                    'C_TP Segment': df_c_tp_segment,
+                    'C_Benchmark': df_benchmark,
+                    'C_Indirect Allocation': df_indirect_alloc,
+                    'SD_Financial_Sales_COGS': df_sales_tx,
+                    'SD_Financials_OPEX': df_opex_combined,
+                    'P_Segmentation_Sales_COGS': p_seg_sales,
+                    'P_Segmentation_OPEX': p_seg_opex,
+                    'P_Direct Allocation': p_direct,
+                    'P_Indirect Allocation': p_indirect,
+                    'P_Total Allocation': p_total_template
+                }
+
                 output = io.BytesIO()
-                with pd.ExcelWriter(output, engine='openpyxl') as writer:
-                    final_company_info.to_excel(writer, index=False, sheet_name='Company Info')
-                    final_region_mapping.to_excel(writer, index=False, sheet_name='Region Mapping')
-                    df_pnl.to_excel(writer, index=False, sheet_name='TPMD_PnL')
-                    df_mat_class.to_excel(writer, index=False, sheet_name='TPMD_MaterialTypeClass')
-                    df_c_tp_segment[["Company Code", "TP Segment"]].to_excel(writer, index=False, sheet_name='TPMD_TPsegment')
-                    df_material.to_excel(writer, index=False, sheet_name='TPMD_Material')
-                    df_c_tp_segment.to_excel(writer, index=False, sheet_name='C_TP Segment')
-                    df_benchmark.to_excel(writer, index=False, sheet_name='C_Benchmark')
-                    df_indirect_alloc.to_excel(writer, index=False, sheet_name='C_Indirect Allocation')
-                    df_sales_tx.to_excel(writer, index=False, sheet_name='SD_Financial_Sales_COGS')
-                    df_opex_tx.to_excel(writer, index=False, sheet_name='SD_Financials_OPEX')
-                    df_tp_adjustments.to_excel(writer, index=False, sheet_name='SD_Operational_TP_Adjustments')
-                    p_total.to_excel(writer, index=False, sheet_name='P_Total Allocation')
+                # Use our read-only template preservation helper function
+                save_report_to_template("data/OTP_Template.xlsx", output, data_dict)
 
                 st.session_state['last_report']['excel_data'] = output.getvalue()
                 st.success("Report successfully generated!")
@@ -507,7 +551,78 @@ with tab3:
             st.divider()
             st.write("### 📊 Operational TP Analytics Dashboard")
             
+            # 1. Extract dataframes
+            p_total = report['p_total'].copy()
+            df_benchmark = report['df_benchmark'].copy()
+            df_sales_tx = report['sales_tx'].copy()
+            export_df = report['companies'].copy()
+            
+            # 2. Pre-calculate compliance rates
+            df_comp = p_total.merge(df_benchmark[["TP Function", "Q1", "Q3", "PLI Name"]], left_on="TP Segment", right_on="TP Function", how="left")
+            pre_margins = []
+            post_margins = []
+            companies_list = []
+            q1_list = []
+            q3_list = []
+            median_list = []
+            
+            for idx, r in df_comp.iterrows():
+                if r["TP Segment"] == "IP Principal" or pd.isna(r["Q1"]):
+                    continue
+                pli = r["PLI Name"]
+                rev = r["Revenue"]
+                cogs = r["COGS"]
+                opex = r["OPEX"]
+                pre_op = r["Preliminary Operating Profit"]
+                final_op = r["Final Operating Profit"]
+                
+                pre_val = 0.0
+                post_val = 0.0
+                
+                if pli == "OM" and rev > 0:
+                    pre_val = pre_op / rev
+                    post_val = final_op / rev
+                elif pli == "NCP" and (cogs + opex) > 0:
+                    pre_val = pre_op / (cogs + opex)
+                    post_val = final_op / (cogs + opex)
+                elif pli == "Gross Margin" and rev > 0:
+                    pre_val = (rev - cogs) / rev
+                    post_val = (final_op + opex) / rev
+                elif pli == "Gross Mark-up" and cogs > 0:
+                    pre_val = (rev - cogs) / cogs
+                    post_val = (final_op + opex) / cogs
+                    
+                pre_margins.append(pre_val)
+                post_margins.append(post_val)
+                companies_list.append(f"{r['Company Code']} ({r['TP Segment'].split(' - ')[0]})")
+                q1_list.append(r["Q1"])
+                q3_list.append(r["Q3"])
+                median_list.append(r["Target Margin"])
+            
+            compliant_count = 0
+            for i in range(len(companies_list)):
+                if q1_list[i] <= post_margins[i] <= q3_list[i]:
+                    compliant_count += 1
+            compliance_rate = (compliant_count / len(companies_list)) * 100 if companies_list else 100.0
+            
+            # 3. Pre-calculate tax arbitrage
+            countries_df_cit, _ = load_data()
+            try:
+                cit_df = pd.read_csv("data/CIT Rate Europe.csv", sep=";")
+            except FileNotFoundError:
+                cit_df = pd.DataFrame()
+            co_to_iso2 = dict(zip(countries_df_cit["ISO3166-1-Alpha-3"], countries_df_cit["ISO3166-1-Alpha-2"]))
+            cit_rate_map = dict(zip(cit_df["iso-2"], cit_df["CIT rate"])) if not cit_df.empty else {}
+            
+            p_total["ISO2"] = p_total["Country Code"].map(co_to_iso2)
+            p_total["CIT Rate"] = p_total["ISO2"].map(cit_rate_map).fillna(21.0)
+            
+            p_total["Tax Pre-Adj"] = p_total.apply(lambda r: max(0.0, r["Preliminary Operating Profit"] * (r["CIT Rate"] / 100.0)), axis=1)
+            p_total["Tax Post-Adj"] = p_total.apply(lambda r: max(0.0, r["Final Operating Profit"] * (r["CIT Rate"] / 100.0)), axis=1)
+            tax_saving = p_total["Tax Pre-Adj"].sum() - p_total["Tax Post-Adj"].sum()
+
             # Premium styled metric cards
+            st.write("#### 💸 Key Financial Totals")
             m_col1, m_col2, m_col3, m_col4, m_col5 = st.columns(5)
             with m_col1:
                 st.metric("Total Revenue", f"{report['metrics']['revenue']:,.2f} EUR")
@@ -520,12 +635,28 @@ with tab3:
             with m_col5:
                 st.metric("Total TP True-ups", f"{report['metrics']['tp_adj_total']:,.2f} EUR")
             
-            # Draw charts
-            p_total = report['p_total'].copy()
-            df_benchmark = report['df_benchmark'].copy()
-            df_sales_tx = report['sales_tx'].copy()
-            export_df = report['companies'].copy()
+            # Dynamic Sanity Checks
+            total_ic_rev = df_sales_tx[df_sales_tx["TypeOfSales"] == "IC"]["Total Amount Sales"].sum()
+            total_ic_exp = df_sales_tx[df_sales_tx["GL Account COGS"] == "500000"]["Total Amount COGS"].abs().sum()
+            ic_diff = abs(total_ic_rev - total_ic_exp)
+            ic_check = f"Passed (Diff: {ic_diff:,.2f} EUR)" if ic_diff < 1.0 else f"Failed (Diff: {ic_diff:,.2f} EUR)"
             
+            tp_adj_net = report['tp_adjustments']['Total Amount'].sum() if 'tp_adjustments' in report else 0.0
+            tp_check = f"{tp_adj_net:,.2f} EUR" if abs(tp_adj_net) >= 0.01 else "0.00 EUR (Balanced)"
+
+            # Validation Metrics Panel (As requested: all important metrics to see if data makes sense right away)
+            st.write("#### 🛡️ Operational TP Data Sanity & Validation Panel")
+            v_col1, v_col2, v_col3, v_col4 = st.columns(4)
+            with v_col1:
+                st.metric("Symmetric IC Accounting Check", ic_check, help="Verifies that total Intercompany Revenue matches Intercompany Expense across all companies.")
+            with v_col2:
+                st.metric("Routine Compliance Rate", f"{compliance_rate:.1f}%", help="Percentage of routine entities whose operating margins lie within the arm's length benchmark range.")
+            with v_col3:
+                st.metric("Total True-ups Net Effect", tp_check, help="Symmetric TP Adjustments net to zero at the group level, confirming no profit is lost.")
+            with v_col4:
+                st.metric("Tax Arbitrage Net Effect", f"{tax_saving:,.2f} EUR", help="Group-wide tax savings/cost shift pre-adjustment vs post-adjustment.")
+            
+            # Draw charts
             st.write("#### Consolidated Profitability & Compliance")
             c_row1_col1, c_row1_col2 = st.columns(2)
             
@@ -563,51 +694,6 @@ with tab3:
                 
             # 2. Compliance Ranges
             with c_row1_col2:
-                # Merge Q1 and Q3 benchmarks
-                df_comp = p_total.merge(df_benchmark[["TP Function", "Q1", "Q3", "PLI Name"]], left_on="TP Segment", right_on="TP Function", how="left")
-                
-                # Calculate margins based on PLI formula
-                pre_margins = []
-                post_margins = []
-                companies_list = []
-                q1_list = []
-                q3_list = []
-                median_list = []
-                
-                for idx, r in df_comp.iterrows():
-                    if r["TP Segment"] == "IP Principal" or pd.isna(r["Q1"]):
-                        continue
-                        
-                    pli = r["PLI Name"]
-                    rev = r["Revenue"]
-                    cogs = r["COGS"]
-                    opex = r["OPEX"]
-                    pre_op = r["Preliminary Operating Profit"]
-                    final_op = r["Final Operating Profit"]
-                    
-                    pre_val = 0.0
-                    post_val = 0.0
-                    
-                    if pli == "OM" and rev > 0:
-                        pre_val = pre_op / rev
-                        post_val = final_op / rev
-                    elif pli == "NCP" and (cogs + opex) > 0:
-                        pre_val = pre_op / (cogs + opex)
-                        post_val = final_op / (cogs + opex)
-                    elif pli == "Gross Margin" and rev > 0:
-                        pre_val = (rev - cogs) / rev
-                        post_val = (final_op + opex) / rev
-                    elif pli == "Gross Mark-up" and cogs > 0:
-                        pre_val = (rev - cogs) / cogs
-                        post_val = (final_op + opex) / cogs
-                        
-                    pre_margins.append(pre_val)
-                    post_margins.append(post_val)
-                    companies_list.append(f"{r['Company Code']} ({r['TP Segment'].split(' - ')[0]})")
-                    q1_list.append(r["Q1"])
-                    q3_list.append(r["Q3"])
-                    median_list.append(r["Target Margin"])
-                
                 if companies_list:
                     fig_comp = go.Figure()
                     
@@ -661,16 +747,73 @@ with tab3:
                     st.plotly_chart(fig_comp, use_container_width=True)
                 else:
                     st.info("No routine entities available for compliance mapping.")
+            
+            # 3. 3D Intercompany Trade Flow Arcs Map (As requested: arclayer map showing transactions between countries)
+            st.write("#### 🌐 Intercompany Trade Flow Arcs (3D Map)")
+            import pydeck as pdk
+            company_coords = st.session_state.get('company_coords', {})
+            ic_sales = df_sales_tx[df_sales_tx["TypeOfSales"] == "IC"]
+            
+            arcs_data = []
+            if company_coords and not ic_sales.empty:
+                flow_totals = ic_sales.groupby(["Company Code", "TradingPartner"])["Total Amount Sales"].sum().reset_index()
+                for _, r in flow_totals.iterrows():
+                    sender = r["Company Code"]
+                    receiver = r["TradingPartner"]
+                    volume = r["Total Amount Sales"]
                     
+                    if sender in company_coords and receiver in company_coords:
+                        s_lat, s_lon = company_coords[sender]
+                        r_lat, r_lon = company_coords[receiver]
+                        
+                        arcs_data.append({
+                            "sender": sender,
+                            "receiver": receiver,
+                            "s_lat": s_lat,
+                            "s_lon": s_lon,
+                            "r_lat": r_lat,
+                            "r_lon": r_lon,
+                            "volume": volume,
+                            "tooltip": f"{sender} ➔ {receiver}: {volume:,.0f} EUR"
+                        })
+            
+            if arcs_data:
+                df_arcs = pd.DataFrame(arcs_data)
+                layer = pdk.Layer(
+                    "ArcLayer",
+                    df_arcs,
+                    get_source_position="[s_lon, s_lat]",
+                    get_target_position="[r_lon, r_lat]",
+                    get_source_color="[0, 229, 255, 160]", # Bright Cyan
+                    get_target_color="[246, 79, 89, 200]", # Coral Red
+                    get_width="1 + (volume / 200000) * 3",
+                    pickable=True,
+                    auto_highlight=True
+                )
+                view_state = pdk.ViewState(
+                    latitude=df_arcs["s_lat"].mean(),
+                    longitude=df_arcs["s_lon"].mean(),
+                    zoom=3.5,
+                    pitch=45
+                )
+                r_map = pdk.Deck(
+                    layers=[layer],
+                    initial_view_state=view_state,
+                    tooltip={"text": "{tooltip}"},
+                    map_style="mapbox://styles/mapbox/dark-v10"
+                )
+                st.pydeck_chart(r_map)
+            else:
+                st.info("The 3D Arc Map is asleep. Make sure your generated companies have valid European/Global cities geocoded in Tab 1.")
+
             st.write("#### Trade Flows & Taxation Mapping")
             c_row2_col1, c_row2_col2 = st.columns(2)
             
-            # 3. Intercompany Trade Matrix Heatmap
+            # 4. Intercompany Trade Matrix Heatmap
             with c_row2_col1:
                 ic_sales = df_sales_tx[df_sales_tx["TypeOfSales"] == "IC"]
                 if not ic_sales.empty:
                     trade_matrix = ic_sales.groupby(["Company Code", "TradingPartner"])["Total Amount Sales"].sum().unstack(fill_value=0)
-                    # Sort indices logically
                     trade_matrix = trade_matrix.reindex(index=sorted(trade_matrix.index), columns=sorted(trade_matrix.columns), fill_value=0)
                     
                     fig_matrix = px.imshow(
@@ -689,22 +832,8 @@ with tab3:
                 else:
                     st.info("No intercompany trade flows found.")
                     
-            # 4. Tax Arbitrage
+            # 5. Tax Arbitrage
             with c_row2_col2:
-                # Load CIT Rate mapping
-                countries_df_cit, _ = load_data()
-                try:
-                    cit_df = pd.read_csv("data/CIT Rate Europe.csv", sep=";")
-                except FileNotFoundError:
-                    cit_df = pd.DataFrame()
-                
-                co_to_iso2 = dict(zip(countries_df_cit["ISO3166-1-Alpha-3"], countries_df_cit["ISO3166-1-Alpha-2"]))
-                cit_rate_map = dict(zip(cit_df["iso-2"], cit_df["CIT rate"])) if not cit_df.empty else {}
-                
-                p_total["ISO2"] = p_total["Country Code"].map(co_to_iso2)
-                p_total["CIT Rate"] = p_total["ISO2"].map(cit_rate_map).fillna(21.0)
-                
-                # statutory CIT rate vs profit generated
                 fig_tax = go.Figure()
                 
                 # Profit bars
