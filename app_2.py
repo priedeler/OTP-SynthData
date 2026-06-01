@@ -11,8 +11,13 @@ import numpy as np
 # Import from Core
 from core_2 import (
     generate_company_name, generate_materials, generate_master_data,
-    generate_config_data, generate_transactions, calculate_allocations
+    generate_config_data, generate_transactions, calculate_allocations,
+    generate_tp_adjustments
 )
+
+# Plotly Imports
+import plotly.graph_objects as go
+import plotly.express as px
 
 # Streamlit Flow Imports
 from streamlit_flow import streamlit_flow
@@ -20,7 +25,93 @@ from streamlit_flow.elements import StreamlitFlowNode, StreamlitFlowEdge
 from streamlit_flow.state import StreamlitFlowState
 
 # Page Configuration
-st.set_page_config(page_title="Company & Material Data Generator", layout="wide")
+st.set_page_config(page_title="Global Company & Material Data Generator", layout="wide")
+
+# Inject Custom Premium CSS (Aesthetics & WOW factor)
+st.markdown("""
+<style>
+    /* Premium Google Web Font */
+    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
+    
+    html, body, [class*="css"], .stApp {
+        font-family: 'Outfit', sans-serif !important;
+    }
+    
+    /* Sleek gradient background for header */
+    .header-gradient {
+        background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
+        padding: 2.5rem;
+        border-radius: 16px;
+        color: white;
+        margin-bottom: 2rem;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+        text-align: center;
+        border: 1px solid rgba(255,255,255,0.05);
+    }
+    
+    .header-gradient h1 {
+        margin: 0 !important;
+        padding-bottom: 0.5rem !important;
+        font-weight: 700 !important;
+        font-size: 2.5rem !important;
+        background: linear-gradient(to right, #00e5ff, #12c2e9, #c471ed, #f64f59);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+    
+    .header-gradient p {
+        margin: 0 !important;
+        font-size: 1.1rem !important;
+        opacity: 0.8;
+    }
+    
+    /* Glassmorphism Metric Cards */
+    div[data-testid="stMetric"] {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: 16px;
+        padding: 1.5rem !important;
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        border-left: 5px solid #00c9ff;
+        transition: all 0.3s ease-in-out;
+    }
+    
+    div[data-testid="stMetric"]:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 12px 40px 0 rgba(0, 229, 255, 0.1);
+        border-left-color: #f64f59;
+    }
+    
+    /* Styled buttons with micro-animations */
+    .stButton>button {
+        border-radius: 8px !important;
+        font-weight: 600 !important;
+        letter-spacing: 0.5px !important;
+        transition: all 0.3s ease !important;
+    }
+    
+    .stButton>button:hover {
+        transform: scale(1.02) !important;
+        box-shadow: 0 4px 15px rgba(0, 229, 255, 0.25) !important;
+    }
+    
+    /* Style headers */
+    h1, h2, h3 {
+        font-weight: 700 !important;
+        letter-spacing: -0.5px !important;
+    }
+    
+    /* Custom container for Plotly charts */
+    .chart-container {
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: 12px;
+        padding: 1rem;
+        background: rgba(255, 255, 255, 0.02);
+    }
+</style>
+""", unsafe_allow_html=True)
 
 def build_flow_state(companies_df, tp_roles_df=None, transactions_df=None):
     nodes = []
@@ -31,7 +122,7 @@ def build_flow_state(companies_df, tp_roles_df=None, transactions_df=None):
         "Service Provider": "Service Provider",
         "Routine Manufacturer": "Contract Manufacturer",
         "Cost Plus Manufacturer": "Contract Manufacturer",
-        "Commodity Trader": "Service Provider",
+        "Commodity Trader": "Commodity Trader",
         "IP Principal": "IP Principal",
         "Distributor - TNMM": "Distributor",
         "Distributor - RPM": "Distributor"
@@ -39,15 +130,17 @@ def build_flow_state(companies_df, tp_roles_df=None, transactions_df=None):
 
     # Segment configuration
     segment_configs = {
-        "Service Provider": {"x": 100, "style": {'backgroundColor': '#f3e5f5', 'border': '2px solid #9c27b0', 'color': 'black'}},
-        "Contract Manufacturer": {"x": 100, "style": {'backgroundColor': '#e8f5e9', 'border': '2px solid #4caf50', 'color': 'black'}},
-        "IP Principal": {"x": 500, "style": {'backgroundColor': '#fff8e1', 'border': '2px solid #ffc107', 'color': 'black'}},
-        "Distributor": {"x": 900, "style": {'backgroundColor': '#e3f2fd', 'border': '2px solid #2196f3', 'color': 'black'}}
+        "Commodity Trader": {"x": 50, "style": {'backgroundColor': '#e0f7fa', 'border': '2px solid #00acc1', 'color': 'black'}},
+        "Service Provider": {"x": 250, "style": {'backgroundColor': '#f3e5f5', 'border': '2px solid #9c27b0', 'color': 'black'}},
+        "Contract Manufacturer": {"x": 250, "style": {'backgroundColor': '#e8f5e9', 'border': '2px solid #4caf50', 'color': 'black'}},
+        "IP Principal": {"x": 600, "style": {'backgroundColor': '#fff8e1', 'border': '2px solid #ffc107', 'color': 'black'}},
+        "Distributor": {"x": 950, "style": {'backgroundColor': '#e3f2fd', 'border': '2px solid #2196f3', 'color': 'black'}}
     }
     
     y_counters = {
+        "Commodity Trader": 0,
         "Service Provider": 0,
-        "Contract Manufacturer": 600,  # Big vertical gap
+        "Contract Manufacturer": 300,  # Vertical gap
         "IP Principal": 0,
         "Distributor": 0
     }
@@ -135,7 +228,7 @@ def get_coordinates(city, country):
     except GeocoderTimedOut:
         return None, None
 
-st.title("Global Company & Material Data Generator")
+st.markdown("<div class='header-gradient'><h1>Global Company & Material Data Generator</h1><p>Next-Generation Synthetic Data Generator for SAP PaPM Operational TP Demos</p></div>", unsafe_allow_html=True)
 
 # Tab definitions
 tab1, tab2, tab3, tab4, tab5 = st.tabs(["Master Data & Map", "Material Configuration", "Export", "TP Network & Rules", "CIT Rates"])
@@ -174,7 +267,7 @@ with tab1:
 
     st.subheader("Generation Options")
     st.write("**Transfer Pricing Role Distribution**")
-    r_col1, r_col2, r_col3, r_col4 = st.columns(4)
+    r_col1, r_col2, r_col3, r_col4, r_col5 = st.columns(5)
     with r_col1:
         num_principals = st.number_input("IP Principals", min_value=1, value=2)
     with r_col2:
@@ -183,8 +276,10 @@ with tab1:
         num_manufacturers = st.number_input("Contract Manufacturers", min_value=0, value=2)
     with r_col4:
         num_service_providers = st.number_input("Service Providers", min_value=0, value=1)
+    with r_col5:
+        num_traders = st.number_input("Commodity Traders", min_value=0, value=1)
     
-    num_companies = num_principals + num_distributors + num_manufacturers + num_service_providers
+    num_companies = num_principals + num_distributors + num_manufacturers + num_service_providers + num_traders
     st.info(f"Total companies: **{num_companies}**")
 
     st.divider()
@@ -207,7 +302,8 @@ with tab1:
                 "principals": num_principals,
                 "distributors": num_distributors,
                 "manufacturers": num_manufacturers,
-                "service_providers": num_service_providers
+                "service_providers": num_service_providers,
+                "traders": num_traders
             }
             
             company_data = []
@@ -366,10 +462,25 @@ with tab3:
 
                 df_sales_tx, df_opex_tx = generate_transactions(export_df, df_material, df_pnl, num_transactions_input, df_c_tp_segment)
                 p_total = calculate_allocations(df_sales_tx, df_opex_tx, export_df, df_benchmark, df_c_tp_segment)
+                
+                # Generate Transactional TP Adjustments
+                df_tp_adjustments = generate_tp_adjustments(df_sales_tx, df_opex_tx, export_df, p_total, df_c_tp_segment, year=2025)
 
                 st.session_state['last_report'] = {
-                    'metrics': {'revenue': p_total['Revenue'].sum(), 'opex': p_total['OPEX'].sum(), 'ebit': p_total['Final Operating Profit'].sum()},
-                    'timestamp': datetime.now().strftime("%Y%m%d_%H%M%S")
+                    'metrics': {
+                        'revenue': p_total['Revenue'].sum(),
+                        'opex': p_total['OPEX'].sum(),
+                        'ebit': p_total['Final Operating Profit'].sum(),
+                        'ic_volume': df_sales_tx[df_sales_tx["TypeOfSales"] == "IC"]["Total Amount Sales"].sum(),
+                        'tp_adj_total': p_total['TP Adjustment'].abs().sum() / 2.0  # Symmetric sum, divided by 2
+                    },
+                    'timestamp': datetime.now().strftime("%Y%m%d_%H%M%S"),
+                    'p_total': p_total,
+                    'sales_tx': df_sales_tx,
+                    'opex_tx': df_opex_tx,
+                    'tp_adjustments': df_tp_adjustments,
+                    'df_benchmark': df_benchmark,
+                    'companies': export_df
                 }
 
                 output = io.BytesIO()
@@ -385,6 +496,7 @@ with tab3:
                     df_indirect_alloc.to_excel(writer, index=False, sheet_name='C_Indirect Allocation')
                     df_sales_tx.to_excel(writer, index=False, sheet_name='SD_Financial_Sales_COGS')
                     df_opex_tx.to_excel(writer, index=False, sheet_name='SD_Financials_OPEX')
+                    df_tp_adjustments.to_excel(writer, index=False, sheet_name='SD_Operational_TP_Adjustments')
                     p_total.to_excel(writer, index=False, sheet_name='P_Total Allocation')
 
                 st.session_state['last_report']['excel_data'] = output.getvalue()
@@ -393,16 +505,257 @@ with tab3:
         if 'last_report' in st.session_state:
             report = st.session_state['last_report']
             st.divider()
-            st.write("### Validation Dashboard")
-            val_col1, val_col2, val_col3 = st.columns(3)
-            with val_col1: st.metric("Total Revenue", f"{report['metrics']['revenue']:,.2f} EUR")
-            with val_col2: st.metric("Total OPEX", f"{report['metrics']['opex']:,.2f} EUR")
-            with val_col3: st.metric("System EBIT", f"{report['metrics']['ebit']:,.2f} EUR")
+            st.write("### 📊 Operational TP Analytics Dashboard")
+            
+            # Premium styled metric cards
+            m_col1, m_col2, m_col3, m_col4, m_col5 = st.columns(5)
+            with m_col1:
+                st.metric("Total Revenue", f"{report['metrics']['revenue']:,.2f} EUR")
+            with m_col2:
+                st.metric("Total OPEX", f"{report['metrics']['opex']:,.2f} EUR")
+            with m_col3:
+                st.metric("System EBIT", f"{report['metrics']['ebit']:,.2f} EUR")
+            with m_col4:
+                st.metric("Intercompany Volume", f"{report['metrics']['ic_volume']:,.2f} EUR")
+            with m_col5:
+                st.metric("Total TP True-ups", f"{report['metrics']['tp_adj_total']:,.2f} EUR")
+            
+            # Draw charts
+            p_total = report['p_total'].copy()
+            df_benchmark = report['df_benchmark'].copy()
+            df_sales_tx = report['sales_tx'].copy()
+            export_df = report['companies'].copy()
+            
+            st.write("#### Consolidated Profitability & Compliance")
+            c_row1_col1, c_row1_col2 = st.columns(2)
+            
+            # 1. P&L Waterfall
+            with c_row1_col1:
+                rev = p_total['Revenue'].sum()
+                cogs = p_total['COGS'].sum()
+                gp = p_total['Gross Profit'].sum()
+                opex = p_total['OPEX'].sum()
+                pre_ebit = p_total['Preliminary Operating Profit'].sum()
+                tp_adj = p_total['TP Adjustment'].sum()
+                final_ebit = p_total['Final Operating Profit'].sum()
+                
+                fig_waterfall = go.Figure(go.Waterfall(
+                    name = "Group P&L",
+                    orientation = "v",
+                    measure = ["relative", "relative", "total", "relative", "total", "relative", "total"],
+                    x = ["Revenue", "COGS", "Gross Profit", "OPEX", "Pre-Adj EBIT", "TP Adjustments", "Final EBIT"],
+                    textposition = "outside",
+                    text = [f"{v/1e6:,.1f}M" for v in [rev, -cogs, gp, -opex, pre_ebit, tp_adj, final_ebit]],
+                    y = [rev, -cogs, 0, -opex, 0, tp_adj, 0],
+                    connector = {"line":{"color":"rgba(255,255,255,0.2)", "width":1}},
+                    decreasing = {"marker":{"color":"#f64f59"}},
+                    increasing = {"marker":{"color":"#12c2e9"}},
+                    totals = {"marker":{"color":"#00e5ff"}}
+                ))
+                fig_waterfall.update_layout(
+                    title="Consolidated Group P&L Flow (EUR)",
+                    showlegend=False,
+                    template="plotly_dark",
+                    height=400,
+                    margin=dict(l=40, r=40, t=60, b=40)
+                )
+                st.plotly_chart(fig_waterfall, use_container_width=True)
+                
+            # 2. Compliance Ranges
+            with c_row1_col2:
+                # Merge Q1 and Q3 benchmarks
+                df_comp = p_total.merge(df_benchmark[["TP Function", "Q1", "Q3", "PLI Name"]], left_on="TP Segment", right_on="TP Function", how="left")
+                
+                # Calculate margins based on PLI formula
+                pre_margins = []
+                post_margins = []
+                companies_list = []
+                q1_list = []
+                q3_list = []
+                median_list = []
+                
+                for idx, r in df_comp.iterrows():
+                    if r["TP Segment"] == "IP Principal" or pd.isna(r["Q1"]):
+                        continue
+                        
+                    pli = r["PLI Name"]
+                    rev = r["Revenue"]
+                    cogs = r["COGS"]
+                    opex = r["OPEX"]
+                    pre_op = r["Preliminary Operating Profit"]
+                    final_op = r["Final Operating Profit"]
+                    
+                    pre_val = 0.0
+                    post_val = 0.0
+                    
+                    if pli == "OM" and rev > 0:
+                        pre_val = pre_op / rev
+                        post_val = final_op / rev
+                    elif pli == "NCP" and (cogs + opex) > 0:
+                        pre_val = pre_op / (cogs + opex)
+                        post_val = final_op / (cogs + opex)
+                    elif pli == "Gross Margin" and rev > 0:
+                        pre_val = (rev - cogs) / rev
+                        post_val = (final_op + opex) / rev
+                    elif pli == "Gross Mark-up" and cogs > 0:
+                        pre_val = (rev - cogs) / cogs
+                        post_val = (final_op + opex) / cogs
+                        
+                    pre_margins.append(pre_val)
+                    post_margins.append(post_val)
+                    companies_list.append(f"{r['Company Code']} ({r['TP Segment'].split(' - ')[0]})")
+                    q1_list.append(r["Q1"])
+                    q3_list.append(r["Q3"])
+                    median_list.append(r["Target Margin"])
+                
+                if companies_list:
+                    fig_comp = go.Figure()
+                    
+                    # Add benchmark range bars (Q1 to Q3)
+                    for i in range(len(companies_list)):
+                        fig_comp.add_shape(
+                            type="rect",
+                            x0=q1_list[i] * 100, y0=i - 0.2,
+                            x1=q3_list[i] * 100, y1=i + 0.2,
+                            line=dict(color="rgba(255, 255, 255, 0.1)", width=1),
+                            fillcolor="rgba(255, 255, 255, 0.07)",
+                            layer="below"
+                        )
+                    
+                    # Add Q1, Median, Q3 markers
+                    fig_comp.add_trace(go.Scatter(
+                        x=[m * 100 for m in median_list],
+                        y=companies_list,
+                        mode="markers",
+                        marker=dict(symbol="line-ns-open", size=14, line_width=3, color="#ffc107"),
+                        name="Target Median"
+                    ))
+                    
+                    # Add Pre-Adjustment Margin
+                    fig_comp.add_trace(go.Scatter(
+                        x=[m * 100 for m in pre_margins],
+                        y=companies_list,
+                        mode="markers",
+                        marker=dict(symbol="circle", size=10, color="#f64f59"),
+                        name="Pre-Adjustment"
+                    ))
+                    
+                    # Add Post-Adjustment Margin
+                    fig_comp.add_trace(go.Scatter(
+                        x=[m * 100 for m in post_margins],
+                        y=companies_list,
+                        mode="markers",
+                        marker=dict(symbol="diamond", size=11, color="#00e5ff"),
+                        name="Post-Adjustment"
+                    ))
+                    
+                    fig_comp.update_layout(
+                        title="Arm's Length Range Compliance Chart (PLI Margin %)",
+                        xaxis_title="Margin / Markup (%)",
+                        yaxis_title="Routine Entities",
+                        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+                        template="plotly_dark",
+                        height=400,
+                        margin=dict(l=40, r=40, t=60, b=40)
+                    )
+                    st.plotly_chart(fig_comp, use_container_width=True)
+                else:
+                    st.info("No routine entities available for compliance mapping.")
+                    
+            st.write("#### Trade Flows & Taxation Mapping")
+            c_row2_col1, c_row2_col2 = st.columns(2)
+            
+            # 3. Intercompany Trade Matrix Heatmap
+            with c_row2_col1:
+                ic_sales = df_sales_tx[df_sales_tx["TypeOfSales"] == "IC"]
+                if not ic_sales.empty:
+                    trade_matrix = ic_sales.groupby(["Company Code", "TradingPartner"])["Total Amount Sales"].sum().unstack(fill_value=0)
+                    # Sort indices logically
+                    trade_matrix = trade_matrix.reindex(index=sorted(trade_matrix.index), columns=sorted(trade_matrix.columns), fill_value=0)
+                    
+                    fig_matrix = px.imshow(
+                        trade_matrix,
+                        labels=dict(x="Receiver (Buyer)", y="Sender (Seller)", color="Trade Volume (EUR)"),
+                        color_continuous_scale="Tealrose",
+                        text_auto=".0f",
+                        title="Intercompany Trade Flow Matrix (EUR)"
+                    )
+                    fig_matrix.update_layout(
+                        template="plotly_dark",
+                        height=400,
+                        margin=dict(l=40, r=40, t=60, b=40)
+                    )
+                    st.plotly_chart(fig_matrix, use_container_width=True)
+                else:
+                    st.info("No intercompany trade flows found.")
+                    
+            # 4. Tax Arbitrage
+            with c_row2_col2:
+                # Load CIT Rate mapping
+                countries_df_cit, _ = load_data()
+                try:
+                    cit_df = pd.read_csv("data/CIT Rate Europe.csv", sep=";")
+                except FileNotFoundError:
+                    cit_df = pd.DataFrame()
+                
+                co_to_iso2 = dict(zip(countries_df_cit["ISO3166-1-Alpha-3"], countries_df_cit["ISO3166-1-Alpha-2"]))
+                cit_rate_map = dict(zip(cit_df["iso-2"], cit_df["CIT rate"])) if not cit_df.empty else {}
+                
+                p_total["ISO2"] = p_total["Country Code"].map(co_to_iso2)
+                p_total["CIT Rate"] = p_total["ISO2"].map(cit_rate_map).fillna(21.0)
+                
+                # statutory CIT rate vs profit generated
+                fig_tax = go.Figure()
+                
+                # Profit bars
+                fig_tax.add_trace(go.Bar(
+                    x=p_total["Company Code"],
+                    y=p_total["Preliminary Operating Profit"],
+                    name="Pre-Adjustment OP",
+                    marker_color="#f64f59",
+                    opacity=0.75
+                ))
+                
+                fig_tax.add_trace(go.Bar(
+                    x=p_total["Company Code"],
+                    y=p_total["Final Operating Profit"],
+                    name="Post-Adjustment OP",
+                    marker_color="#12c2e9",
+                    opacity=0.85
+                ))
+                
+                # Statutory rate line on right y-axis
+                fig_tax.add_trace(go.Scatter(
+                    x=p_total["Company Code"],
+                    y=p_total["CIT Rate"],
+                    name="CIT Rate (%)",
+                    yaxis="y2",
+                    line=dict(color="#ffc107", width=3, dash="dot"),
+                    mode="lines+markers"
+                ))
+                
+                fig_tax.update_layout(
+                    title="Operating Profit vs Statutory CIT Rates",
+                    xaxis_title="Company Code",
+                    yaxis_title="Operating Profit (EUR)",
+                    yaxis2=dict(
+                        title="Statutory CIT Rate (%)",
+                        overlaying="y",
+                        side="right",
+                        range=[0, 40]
+                    ),
+                    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+                    template="plotly_dark",
+                    height=400,
+                    margin=dict(l=40, r=40, t=60, b=40)
+                )
+                st.plotly_chart(fig_tax, use_container_width=True)
 
+            st.divider()
             file_name = f"OTP_Data_{report['timestamp']}.xlsx"
-            st.download_button(label=f"Download '{file_name}'", data=report['excel_data'], file_name=file_name, mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", type="primary")
+            st.download_button(label=f"💾 Download SAP PaPM-Ready Dataset ('{file_name}')", data=report['excel_data'], file_name=file_name, mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", type="primary")
     else:
-        st.info("Generate data in Tab 1 first to enable export.")
+        st.info("Generate data in Tab 1 first to enable export and analytics.")
 
 with tab4:
     st.subheader("Interactive TP Network")

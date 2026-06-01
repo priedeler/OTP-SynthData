@@ -152,6 +152,7 @@ def generate_transactions(companies_df, materials_df, pnl_df, num_transactions, 
     distributors = df_c_tp_segment[df_c_tp_segment["TP Segment"].str.contains("Distributor")]["Company Code"].tolist()
     manufacturers = df_c_tp_segment[df_c_tp_segment["TP Segment"].str.contains("Manufacturer")]["Company Code"].tolist()
     service_providers = df_c_tp_segment[df_c_tp_segment["TP Segment"] == "Service Provider"]["Company Code"].tolist()
+    commodity_traders = df_c_tp_segment[df_c_tp_segment["TP Segment"] == "Commodity Trader"]["Company Code"].tolist()
     
     ic_sales_acc = "400000"
     tp_sales_acc = "410000"
@@ -159,20 +160,78 @@ def generate_transactions(companies_df, materials_df, pnl_df, num_transactions, 
     tp_cogs_acc = "510000"
     
     revenue_tracker = {code: 0 for code in company_codes}
+    
+    # Speed Optimization: Convert materials DataFrame to a list of dictionaries
+    materials_list = materials_df.to_dict('records')
 
     for flow_id in range(num_transactions):
-        material = materials_df.sample(n=1).iloc[0]
+        material = random.choice(materials_list)
         qty = random.randint(1, 100)
         month = random.randint(1, 12)
         period = f"{str(month).zfill(2)}.{year}"
+        
+        # ERP Fields
+        doc_num = f"DOC-{year}-{str(flow_id + 100001).zfill(6)}"
+        day = random.randint(1, 28)
+        posting_date = f"{year}-{str(month).zfill(2)}-{str(day).zfill(2)}"
+        uom = "PC"
 
         # --- RESILIENT ROUTING ENGINE ---
-        
-        # A. MANUFACTURING LEG
         current_buyer = None
+        
+        # A. COMMODITY TRADER LEG (Optional raw material supply chain leg)
+        trader_seller = None
+        target_manufacturer = None
+        if commodity_traders and manufacturers:
+            trader_seller = random.choice(commodity_traders)
+            target_manufacturer = random.choice(manufacturers)
+            
+            price_sales = material["IC Sales Price"]
+            price_cogs = material["Raw Material Price"]
+            revenue = round(qty * price_sales, 2)
+            cogs = round(qty * price_cogs, 2)
+            
+            # Trader sells Raw Materials to Manufacturer (IC Sales)
+            sales_tx.append({
+                "DocNumber": doc_num,
+                "PostingDate": posting_date,
+                "Company Code": trader_seller,
+                "Company": co_to_name[trader_seller],
+                "Country Code": co_to_country[trader_seller],
+                "Country": co_to_country[trader_seller],
+                "Region CoCo": "Europe",
+                "Year": year,
+                "PeriodRange": period,
+                "GL Account Sales": ic_sales_acc,
+                "GL Description Sales": "Sales",
+                "GL Account COGS": tp_cogs_acc,
+                "GL Description COGS": "COGS",
+                "MaterialNumber": material["Material"],
+                "Brand": material["Brand"],
+                "BusinessType": "Sales",
+                "ValuationClass": "RAW",
+                "TradingPartner": target_manufacturer,
+                "Trading Partner": target_manufacturer,
+                "Trading Partner Region": "Global",
+                "TypeOfSales": "IC",
+                "RUNIT": co_to_currency[trader_seller],
+                "GlobalCurrency": "EUR",
+                "Price Sales": price_sales,
+                "Price COGS": price_cogs,
+                "Total Sales": qty,
+                "Total Amount Sales": revenue,
+                "Total Amount COGS": -cogs,
+                "ProfitCenter": f"PC_{trader_seller}",
+                "CostCenter": f"CC_{trader_seller}_OPS",
+                "UoM": uom,
+                "Column": ""
+            })
+            revenue_tracker[trader_seller] += revenue
+            
+        # B. MANUFACTURING LEG
         if manufacturers:
-            seller = random.choice(manufacturers)
-            # Resilient Buyer Selection
+            seller = target_manufacturer if (trader_seller is not None) else random.choice(manufacturers)
+            
             if principals:
                 buyer = random.choice(principals)
                 type_sales = "IC"
@@ -184,11 +243,15 @@ def generate_transactions(companies_df, materials_df, pnl_df, num_transactions, 
                 type_sales = "3P"
             
             price_sales = material["IC Sales Price"] if buyer != "EXTERNAL" else material["3P Sales Price"]
-            price_cogs = material["Raw Material Price"]
+            price_cogs = material["IC Sales Price"] if (trader_seller is not None) else material["Raw Material Price"]
+            cogs_type = "IC" if (trader_seller is not None) else "3P"
+            
             revenue = round(qty * price_sales, 2)
             cogs = round(qty * price_cogs, 2)
             
             sales_tx.append({
+                "DocNumber": doc_num,
+                "PostingDate": posting_date,
                 "Company Code": seller,
                 "Company": co_to_name[seller],
                 "Country Code": co_to_country[seller],
@@ -198,7 +261,7 @@ def generate_transactions(companies_df, materials_df, pnl_df, num_transactions, 
                 "PeriodRange": period,
                 "GL Account Sales": ic_sales_acc if type_sales == "IC" else tp_sales_acc,
                 "GL Description Sales": "Sales",
-                "GL Account COGS": ic_cogs_acc if type_sales == "IC" else tp_cogs_acc,
+                "GL Account COGS": ic_cogs_acc if cogs_type == "IC" else tp_cogs_acc,
                 "GL Description COGS": "COGS",
                 "MaterialNumber": material["Material"],
                 "Brand": material["Brand"],
@@ -215,16 +278,18 @@ def generate_transactions(companies_df, materials_df, pnl_df, num_transactions, 
                 "Total Sales": qty,
                 "Total Amount Sales": revenue,
                 "Total Amount COGS": -cogs,
+                "ProfitCenter": f"PC_{seller}",
+                "CostCenter": f"CC_{seller}_OPS",
+                "UoM": uom,
                 "Column": ""
             })
             revenue_tracker[seller] += revenue
             if buyer != "EXTERNAL":
                 current_buyer = buyer
 
-        # B. PRINCIPAL LEG
+        # C. PRINCIPAL LEG
         if principals:
             seller = current_buyer if (current_buyer in principals) else random.choice(principals)
-            # Resilient Buyer Selection
             if distributors:
                 buyer = random.choice(distributors)
                 type_sales = "IC"
@@ -234,13 +299,15 @@ def generate_transactions(companies_df, materials_df, pnl_df, num_transactions, 
                 type_sales = "3P"
                 price_sales = material["3P Sales Price"]
             
-            # Match COGS to previous leg's Sales if applicable
             price_cogs = material["IC Sales Price"] if current_buyer == seller else material["Raw Material Price"]
+            cogs_type = "IC" if current_buyer == seller else "3P"
             
             revenue = round(qty * price_sales, 2)
             cogs = round(qty * price_cogs, 2)
             
             sales_tx.append({
+                "DocNumber": doc_num,
+                "PostingDate": posting_date,
                 "Company Code": seller,
                 "Company": co_to_name[seller],
                 "Country Code": co_to_country[seller],
@@ -250,7 +317,7 @@ def generate_transactions(companies_df, materials_df, pnl_df, num_transactions, 
                 "PeriodRange": period,
                 "GL Account Sales": ic_sales_acc if type_sales == "IC" else tp_sales_acc,
                 "GL Description Sales": "Sales",
-                "GL Account COGS": ic_cogs_acc if type_sales == "IC" else tp_cogs_acc,
+                "GL Account COGS": ic_cogs_acc if cogs_type == "IC" else tp_cogs_acc,
                 "GL Description COGS": "COGS",
                 "MaterialNumber": material["Material"],
                 "Brand": material["Brand"],
@@ -267,6 +334,9 @@ def generate_transactions(companies_df, materials_df, pnl_df, num_transactions, 
                 "Total Sales": qty,
                 "Total Amount Sales": revenue,
                 "Total Amount COGS": -cogs,
+                "ProfitCenter": f"PC_{seller}",
+                "CostCenter": f"CC_{seller}_OPS",
+                "UoM": uom,
                 "Column": ""
             })
             revenue_tracker[seller] += revenue
@@ -275,19 +345,20 @@ def generate_transactions(companies_df, materials_df, pnl_df, num_transactions, 
             else:
                 current_buyer = None
 
-        # C. DISTRIBUTION LEG
+        # D. DISTRIBUTION LEG
         if distributors:
-            # Only act as seller if we are a distributor
             seller = current_buyer if (current_buyer in distributors) else random.choice(distributors)
             buyer = "EXTERNAL"
             
-            price_cogs = material["MER Material Price"] if current_buyer == seller else material["MER Material Price"]
+            price_cogs = material["MER Material Price"]
             price_sales = material["3P Sales Price"]
             
             revenue = round(qty * price_sales, 2)
             cogs = round(qty * price_cogs, 2)
             
             sales_tx.append({
+                "DocNumber": doc_num,
+                "PostingDate": posting_date,
                 "Company Code": seller,
                 "Company": co_to_name[seller],
                 "Country Code": co_to_country[seller],
@@ -297,7 +368,7 @@ def generate_transactions(companies_df, materials_df, pnl_df, num_transactions, 
                 "PeriodRange": period,
                 "GL Account Sales": tp_sales_acc,
                 "GL Description Sales": "Sales",
-                "GL Account COGS": tp_cogs_acc,
+                "GL Account COGS": ic_cogs_acc,
                 "GL Description COGS": "COGS",
                 "MaterialNumber": material["Material"],
                 "Brand": material["Brand"],
@@ -314,11 +385,14 @@ def generate_transactions(companies_df, materials_df, pnl_df, num_transactions, 
                 "Total Sales": qty,
                 "Total Amount Sales": revenue,
                 "Total Amount COGS": -cogs,
+                "ProfitCenter": f"PC_{seller}",
+                "CostCenter": f"CC_{seller}_OPS",
+                "UoM": uom,
                 "Column": ""
             })
             revenue_tracker[seller] += revenue
 
-        # D. SERVICE PROVIDERS (FIXED: Symmetric IC Accounting)
+        # E. SERVICE PROVIDERS (Symmetric IC Accounting)
         if service_providers and random.random() < 0.20:
             seller = random.choice(service_providers)
             buyer = random.choice(principals) if principals else (random.choice(distributors) if distributors else random.choice(company_codes))
@@ -327,6 +401,8 @@ def generate_transactions(companies_df, materials_df, pnl_df, num_transactions, 
             
             # Seller Revenue Row
             sales_tx.append({
+                "DocNumber": doc_num,
+                "PostingDate": posting_date,
                 "Company Code": seller,
                 "Company": co_to_name[seller],
                 "Country Code": co_to_country[seller],
@@ -353,12 +429,17 @@ def generate_transactions(companies_df, materials_df, pnl_df, num_transactions, 
                 "Total Sales": 1,
                 "Total Amount Sales": service_fee,
                 "Total Amount COGS": 0,
+                "ProfitCenter": f"PC_{seller}",
+                "CostCenter": f"CC_{seller}_OPS",
+                "UoM": "HR",
                 "Column": ""
             })
             revenue_tracker[seller] += service_fee
 
-            # Buyer Expense Row (The Fix)
+            # Buyer Expense Row
             sales_tx.append({
+                "DocNumber": doc_num,
+                "PostingDate": posting_date,
                 "Company Code": buyer,
                 "Company": co_to_name[buyer],
                 "Country Code": co_to_country[buyer],
@@ -385,12 +466,17 @@ def generate_transactions(companies_df, materials_df, pnl_df, num_transactions, 
                 "Total Sales": 0,
                 "Total Amount Sales": 0,
                 "Total Amount COGS": -service_fee,
+                "ProfitCenter": f"PC_{buyer}",
+                "CostCenter": f"CC_{buyer}_OPS",
+                "UoM": "HR",
                 "Column": ""
             })
 
     # OPEX transactions (Scaled to Revenue)
     opex_tx = []
     opex_accounts = [("600000", "Marketing"), ("610000", "R&D"), ("620000", "General Admin"), ("630000", "Logistics")]
+    cc_suffix_map = {"600000": "MKTG", "610000": "RD", "620000": "ADM", "630000": "LOG"}
+
     for code in company_codes:
         segment = co_to_segment.get(code)
         revenue = revenue_tracker.get(code, 0)
@@ -403,10 +489,14 @@ def generate_transactions(companies_df, materials_df, pnl_df, num_transactions, 
             
         amount_per_entry = annual_opex / (len(opex_accounts) * 12)
 
-        for acc_code, acc_desc in opex_accounts:
+        for opex_flow_id, (acc_code, acc_desc) in enumerate(opex_accounts):
             for month in range(1, 13):
                 period = f"{str(month).zfill(2)}.{year}"
                 monthly_amount = round(amount_per_entry * random.uniform(0.85, 1.15), 2)
+                
+                doc_num = f"OPX-{year}-{code}-{str(opex_flow_id*12 + month).zfill(4)}"
+                day = random.randint(1, 28)
+                posting_date = f"{year}-{str(month).zfill(2)}-{str(day).zfill(2)}"
                 
                 if segment == "Service Provider" and principals:
                     partner = random.choice(principals)
@@ -414,6 +504,8 @@ def generate_transactions(companies_df, materials_df, pnl_df, num_transactions, 
                     partner = "VARIOUS"
                     
                 opex_tx.append({
+                    "DocNumber": doc_num,
+                    "PostingDate": posting_date,
                     "Company Code": code,
                     "Company": co_to_name[code],
                     "Country Code": co_to_country[code],
@@ -435,10 +527,107 @@ def generate_transactions(companies_df, materials_df, pnl_df, num_transactions, 
                     "GlobalCurrency": "EUR",
                     "Price": 0,
                     "Total Sales": 0,
-                    "Total Amount": monthly_amount
+                    "Total Amount": monthly_amount,
+                    "ProfitCenter": f"PC_{code}",
+                    "CostCenter": f"CC_{code}_{cc_suffix_map[acc_code]}",
+                    "UoM": "N/A"
                 })
 
     return pd.DataFrame(sales_tx), pd.DataFrame(opex_tx)
+
+def generate_tp_adjustments(sales_tx, opex_tx, companies_df, p_total, df_c_tp_segment, year=2025):
+    """
+    Generate symmetric operational TP adjustment line items (journal entries) 
+    for routine entities that require adjustments to align with benchmark ranges.
+    """
+    adj_entries = []
+    
+    co_to_country = dict(zip(companies_df["Company Code"], companies_df["Country Key"]))
+    co_to_name = dict(zip(companies_df["Company Code"], companies_df["Company Name"]))
+    co_to_currency = dict(zip(companies_df["Company Code"], companies_df["Co Currency"]))
+    
+    principals = df_c_tp_segment[df_c_tp_segment["TP Segment"] == "IP Principal"]["Company Code"].tolist()
+    
+    # 1. Loop through companies and check their TP Adjustment
+    adj_id = 1
+    for _, row in p_total.iterrows():
+        code = row["Company Code"]
+        tp_adj = row["TP Adjustment"]
+        
+        # Skip if adjustment is tiny or 0, or if it is a Principal (Principal gets the residual offset)
+        if abs(tp_adj) < 1.0 or row["TP Segment"] == "IP Principal":
+            continue
+            
+        # Target partner is the designated Principal (who absorbs the cost/revenue)
+        # If no principal is defined, fall back to EXTERNAL or another group entity
+        partner = random.choice(principals) if principals else "EXTERNAL"
+        
+        doc_num = f"ADJ-{year}-{str(adj_id).zfill(4)}"
+        posting_date = f"{year}-12-31"
+        period = f"12.{year}"
+        
+        # Routine Entity posting
+        adj_entries.append({
+            "DocNumber": doc_num,
+            "PostingDate": posting_date,
+            "Company Code": code,
+            "Company": co_to_name[code],
+            "Country Code": co_to_country[code],
+            "Country": co_to_country[code],
+            "Region CoCo": "Europe",
+            "Year": year,
+            "PeriodRange": period,
+            "GL Account": "490000", # TP Adjustment account
+            "GL Description": "Transfer Pricing Adjustment",
+            "MaterialNumber": "*",
+            "Brand": "*",
+            "BusinessType": "TP_ADJ",
+            "ValuationClass": "*",
+            "TradingPartner": partner,
+            "Trading Partner": partner,
+            "TypeOfSales": "IC",
+            "RUNIT": co_to_currency[code],
+            "GlobalCurrency": "EUR",
+            "Total Amount": round(tp_adj, 2),
+            "ProfitCenter": f"PC_{code}",
+            "CostCenter": f"CC_{code}_OPS",
+            "UoM": "N/A",
+            "Comment": f"Operational TP True-up vs {partner}"
+        })
+        
+        # Symmetric Principal posting
+        if partner != "EXTERNAL":
+            adj_entries.append({
+                "DocNumber": doc_num,
+                "PostingDate": posting_date,
+                "Company Code": partner,
+                "Company": co_to_name[partner],
+                "Country Code": co_to_country[partner],
+                "Country": co_to_country[partner],
+                "Region CoCo": "Europe",
+                "Year": year,
+                "PeriodRange": period,
+                "GL Account": "590000", # TP Purchase Adjustment account
+                "GL Description": "Transfer Pricing Cost Offset",
+                "MaterialNumber": "*",
+                "Brand": "*",
+                "BusinessType": "TP_ADJ",
+                "ValuationClass": "*",
+                "TradingPartner": code,
+                "Trading Partner": code,
+                "TypeOfSales": "IC",
+                "RUNIT": co_to_currency[partner],
+                "GlobalCurrency": "EUR",
+                "Total Amount": round(-tp_adj, 2), # Mirror the sign
+                "ProfitCenter": f"PC_{partner}",
+                "CostCenter": f"CC_{partner}_OPS",
+                "UoM": "N/A",
+                "Comment": f"Symmetric TP Offset vs {code}"
+            })
+            
+        adj_id += 1
+        
+    return pd.DataFrame(adj_entries)
 
 def calculate_allocations(sales_tx, opex_tx, companies_df, df_benchmark, df_c_tp_segment):
     # Aggregated view
