@@ -230,31 +230,46 @@ def get_coordinates(city, country):
 
 def init_default_state():
     if 'company_data' not in st.session_state:
-        demo_companies, demo_roles = get_demo_scenario()
-        st.session_state['company_data'] = demo_companies
-        st.session_state['tp_roles'] = demo_roles
+        st.session_state['company_data'] = pd.DataFrame(columns=[
+            "Reroll", "Company Code", "Company Name", "City", "Country Name", "Region", 
+            "Country Key", "Co Currency", "Group Currency", "Language Key", "Chart of Accounts"
+        ])
+        st.session_state['tp_roles'] = pd.DataFrame(columns=["Company Code", "TP Segment"])
+        st.session_state['company_coords'] = {}
+        st.session_state['map_coords'] = []
         
-        company_coords = {}
-        map_coords = []
-        for _, row in demo_companies.iterrows():
-            if 'lat' in row and 'lon' in row:
-                c_lat, c_lon = row['lat'], row['lon']
-            else:
-                c_lat, c_lon = get_coordinates(row['City'], row['Country Name'])
-            
-            if c_lat and c_lon:
-                company_coords[row['Company Code']] = (c_lat, c_lon)
-                map_coords.append({'lat': c_lat, 'lon': c_lon})
-        st.session_state['company_coords'] = company_coords
-        st.session_state['map_coords'] = map_coords
+        st.session_state['df_mat_class'] = pd.DataFrame(columns=["MaterialClass", "Brand", "Margin"])
+        st.session_state['df_material'] = pd.DataFrame(columns=["Material", "Brand", "ProductCategory", "MER Material Price", "3P Sales Price"])
+        st.session_state['mat_brands'] = ["AlphaTech", "BetaMed", "GammaFoods", "DeltaLogistics", "NexGen", "CoreSystems"]
         
-        df_mat_class, df_material = generate_materials(20)
-        st.session_state['df_mat_class'] = df_mat_class
-        st.session_state['df_material'] = df_material
+        st.session_state['benchmark_data'] = pd.DataFrame(columns=["TP Function", "Q1", "Median", "Q3", "PLI Name", "TP Method"])
+
+def load_demo_scenario():
+    demo_companies, demo_roles = get_demo_scenario()
+    st.session_state['company_data'] = demo_companies
+    st.session_state['tp_roles'] = demo_roles
+    
+    company_coords = {}
+    map_coords = []
+    for _, row in demo_companies.iterrows():
+        if 'lat' in row and 'lon' in row:
+            c_lat, c_lon = row['lat'], row['lon']
+        else:
+            c_lat, c_lon = get_coordinates(row['City'], row['Country Name'])
         
-        df_pnl, df_segments = generate_master_data()
-        _, df_benchmark, _ = generate_config_data(demo_companies, df_segments)
-        st.session_state['benchmark_data'] = df_benchmark
+        if c_lat and c_lon:
+            company_coords[row['Company Code']] = (c_lat, c_lon)
+            map_coords.append({'lat': c_lat, 'lon': c_lon})
+    st.session_state['company_coords'] = company_coords
+    st.session_state['map_coords'] = map_coords
+    
+    df_mat_class, df_material = generate_materials(20)
+    st.session_state['df_mat_class'] = df_mat_class
+    st.session_state['df_material'] = df_material
+    
+    df_pnl, df_segments = generate_master_data()
+    _, df_benchmark, _ = generate_config_data(demo_companies, df_segments)
+    st.session_state['benchmark_data'] = df_benchmark
 
 init_default_state()
 
@@ -336,7 +351,19 @@ with tab1:
     with adv_col3:
         service_fee_range = st.slider("Service Fee Bounds (EUR)", min_value=1000, max_value=100000, value=(5000, 25000), step=1000)
 
-    if st.button("Generate Global Structure", type="primary"):
+    btn_col1, btn_col2 = st.columns(2)
+    with btn_col1:
+        generate_clicked = st.button("Generate Global Structure", type="primary")
+    with btn_col2:
+        demo_clicked = st.button("Load Demo Preset Scenario", type="secondary")
+
+    if demo_clicked:
+        load_demo_scenario()
+        for key in ['flow_state']:
+            if key in st.session_state: del st.session_state[key]
+        st.rerun()
+
+    if generate_clicked:
         if not countries_to_use:
             st.error("Please select at least one region or country.")
         else:
@@ -427,11 +454,14 @@ with tab1:
         editor_city_options = sorted(cities_df[cities_df['ISO3166-1-Alpha-3'].isin(filtered_countries['ISO3166-1-Alpha-3'].tolist())]['City'].dropna().unique().tolist()) if not filtered_countries.empty else sorted(cities_df['City'].dropna().unique().tolist())
 
         edited_df = st.data_editor(
-            df, width='stretch', hide_index=True,
+            df, width='stretch', hide_index=True, num_rows="dynamic",
             column_config={
                 "Reroll": st.column_config.CheckboxColumn("Reroll?", default=False),
+                "Company Code": st.column_config.TextColumn("Company Code", required=True),
+                "Company Name": st.column_config.TextColumn("Company Name", required=True),
                 "Country Name": st.column_config.SelectboxColumn("Country", options=editor_country_options, required=True),
-                "City": st.column_config.SelectboxColumn("City", options=editor_city_options, required=True)
+                "City": st.column_config.SelectboxColumn("City", options=editor_city_options, required=True),
+                "Group Currency": st.column_config.TextColumn("Group Currency", default="EUR")
             }
         )
 
@@ -455,8 +485,31 @@ with tab1:
                         edited_df.at[idx, 'Region'] = c_row.iloc[0]['Region Name']
                         currency = c_row.iloc[0]['ISO4217-currency_alphabetic_code']
                         edited_df.at[idx, 'Co Currency'] = "EUR" if pd.isna(currency) else str(currency).split(',')[0]
+                    
+                    if pd.isna(row['Company Code']) or str(row['Company Code']).strip() == "":
+                        edited_df.at[idx, 'Company Code'] = f"Co{str(idx+1).zfill(2)}"
+                    if pd.isna(row['Group Currency']) or str(row['Group Currency']).strip() == "":
+                        edited_df.at[idx, 'Group Currency'] = "EUR"
+                    if pd.isna(row['Language Key']) or str(row['Language Key']).strip() == "":
+                        edited_df.at[idx, 'Language Key'] = "EN"
+                    if pd.isna(row['Chart of Accounts']) or str(row['Chart of Accounts']).strip() == "":
+                        edited_df.at[idx, 'Chart of Accounts'] = "COA"
 
                 st.session_state['company_data'] = edited_df
+                
+                # Sync tp_roles
+                current_companies = edited_df['Company Code'].dropna().unique().tolist()
+                tp_roles_df = st.session_state.get('tp_roles', pd.DataFrame(columns=["Company Code", "TP Segment"]))
+                tp_roles_df = tp_roles_df[tp_roles_df['Company Code'].isin(current_companies)]
+                existing_roles = tp_roles_df['Company Code'].tolist()
+                new_roles = []
+                for comp in current_companies:
+                    if comp not in existing_roles:
+                        new_roles.append({"Company Code": comp, "TP Segment": "Routine Manufacturer"})
+                if new_roles:
+                    tp_roles_df = pd.concat([tp_roles_df, pd.DataFrame(new_roles)], ignore_index=True)
+                st.session_state['tp_roles'] = tp_roles_df
+
                 company_coords = {}
                 map_coords = []
                 for _, row in edited_df.iterrows():
@@ -502,7 +555,7 @@ with tab2:
             st.session_state['df_material'] = st.data_editor(st.session_state['df_material'], width='stretch', hide_index=True, num_rows="dynamic")
 
 with tab3:
-    if 'company_data' in st.session_state:
+    if 'company_data' in st.session_state and not st.session_state['company_data'].empty:
         st.subheader("Export & Validation")
         if st.button("Generate Final Report", type="primary"):
             with st.spinner("Generating data..."):
@@ -962,12 +1015,12 @@ with tab3:
                 csv_data = df_comp.to_csv(index=False).encode('utf-8')
                 st.download_button(label=f"Download Dashboard Data (CSV)", data=csv_data, file_name=f"OTP_Dashboard_{report['timestamp']}.csv", mime="text/csv", type="secondary")
     else:
-        st.info("Generate data in Tab 1 first to enable export and analytics.")
+        st.info("Generate companies in Tab 1 first, or click 'Load Demo Preset Scenario' to get started quickly.")
 
 with tab4:
     st.subheader("Interactive TP Network")
-    if 'company_data' in st.session_state:
-        if 'tp_roles' not in st.session_state or 'benchmark_data' not in st.session_state:
+    if 'company_data' in st.session_state and not st.session_state['company_data'].empty:
+        if 'tp_roles' not in st.session_state or st.session_state.get('tp_roles').empty:
             export_df = st.session_state['company_data'].copy()
             _, df_tp_segments = generate_master_data()
             role_counts = st.session_state.get('role_counts')
@@ -996,7 +1049,7 @@ with tab4:
         col_ed1, col_ed2 = st.columns(2)
         with col_ed1:
             st.subheader("TP Roles")
-            st.session_state['tp_roles'] = st.data_editor(st.session_state['tp_roles'], width='stretch', hide_index=True, column_config={"TP Segment": st.column_config.SelectboxColumn("TP Segment", options=["Distributor - TNMM", "Distributor - RPM", "Routine Manufacturer", "Cost Plus Manufacturer", "IP Principal", "Service Provider", "Commodity Trader"], required=True)})
+            st.session_state['tp_roles'] = st.data_editor(st.session_state['tp_roles'], width='stretch', hide_index=True, num_rows="dynamic", column_config={"TP Segment": st.column_config.SelectboxColumn("TP Segment", options=["Distributor - TNMM", "Distributor - RPM", "Routine Manufacturer", "Cost Plus Manufacturer", "IP Principal", "Service Provider", "Commodity Trader"], required=True)})
             if st.button("Apply Roles to Flow"):
                 export_df = st.session_state['company_data'].copy()
                 df_pnl, _ = generate_master_data()
@@ -1014,9 +1067,16 @@ with tab4:
 
         with col_ed2:
             st.subheader("Benchmarks")
-            st.session_state['benchmark_data'] = st.data_editor(st.session_state['benchmark_data'], width='stretch', hide_index=True)
+            if st.button("Auto-Generate Benchmarks"):
+                export_df = st.session_state['company_data'].copy()
+                _, df_tp_segments = generate_master_data()
+                role_counts = st.session_state.get('role_counts')
+                _, df_benchmark, _ = generate_config_data(export_df, df_tp_segments, role_counts=role_counts)
+                st.session_state['benchmark_data'] = df_benchmark
+                st.rerun()
+            st.session_state['benchmark_data'] = st.data_editor(st.session_state['benchmark_data'], width='stretch', hide_index=True, num_rows="dynamic")
     else:
-        st.info("Generate data in Tab 1 first to visualize the network.")
+        st.info("Generate companies in Tab 1 first, or click 'Load Demo Preset Scenario' to visualize the network.")
 
 with tab5:
     st.subheader("Corporate Income Tax Rates in Europe")
