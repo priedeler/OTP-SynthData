@@ -175,6 +175,7 @@ def generate_transactions(companies_df, materials_df, pnl_df, num_transactions, 
 
         # --- RESILIENT ROUTING ENGINE ---
         current_buyer = None
+        current_price = None
         
         # A. COMMODITY TRADER LEG (Optional raw material supply chain leg)
         trader_seller = None
@@ -279,6 +280,10 @@ def generate_transactions(companies_df, materials_df, pnl_df, num_transactions, 
             revenue_tracker[seller] += revenue
             if buyer != "EXTERNAL":
                 current_buyer = buyer
+                current_price = price_sales
+            else:
+                current_buyer = None
+                current_price = None
 
         # C. PRINCIPAL LEG
         if principals:
@@ -292,7 +297,7 @@ def generate_transactions(companies_df, materials_df, pnl_df, num_transactions, 
                 type_sales = "3P"
                 price_sales = material["3P Sales Price"]
             
-            price_cogs = material["IC Sales Price"] if current_buyer == seller else material["Raw Material Price"]
+            price_cogs = current_price if current_buyer == seller else material["Raw Material Price"]
             cogs_type = "IC" if current_buyer == seller else "3P"
             
             revenue = round(qty * price_sales, 2)
@@ -330,16 +335,19 @@ def generate_transactions(companies_df, materials_df, pnl_df, num_transactions, 
             revenue_tracker[seller] += revenue
             if buyer != "EXTERNAL":
                 current_buyer = buyer
+                current_price = price_sales
             else:
                 current_buyer = None
+                current_price = None
 
         # D. DISTRIBUTION LEG
         if distributors:
             seller = current_buyer if (current_buyer in distributors) else random.choice(distributors)
             buyer = "EXTERNAL"
             
-            price_cogs = material["MER Material Price"]
+            price_cogs = current_price if current_buyer == seller else material["MER Material Price"]
             price_sales = material["3P Sales Price"]
+            cogs_type = "IC" if current_buyer == seller else "3P"
             
             revenue = round(qty * price_sales, 2)
             cogs = round(qty * price_cogs, 2)
@@ -354,7 +362,7 @@ def generate_transactions(companies_df, materials_df, pnl_df, num_transactions, 
                 "PeriodRange": period,
                 "GL Account Sales": tp_sales_acc,
                 "GL Description Sales": "Sales",
-                "GL Account COGS": ic_cogs_acc,
+                "GL Account COGS": ic_cogs_acc if cogs_type == "IC" else tp_cogs_acc,
                 "GL Description COGS": "COGS",
                 "MaterialNumber": material["Material"],
                 "Brand": material["Brand"],
@@ -560,6 +568,18 @@ def generate_tp_adjustments(sales_tx, opex_tx, companies_df, p_total, df_c_tp_se
     
     principals = df_c_tp_segment[df_c_tp_segment["TP Segment"] == "IP Principal"]["Company Code"].tolist()
     
+    # Pre-calculate principal weights based on OPEX
+    is_principal = p_total["TP Segment"] == "IP Principal"
+    principal_weights = {}
+    if is_principal.any():
+        total_principal_opex = p_total.loc[is_principal, "OPEX"].sum()
+        for _, p_row in p_total[is_principal].iterrows():
+            p_code = p_row["Company Code"]
+            if total_principal_opex > 0:
+                principal_weights[p_code] = p_row["OPEX"] / total_principal_opex
+            else:
+                principal_weights[p_code] = 1.0 / is_principal.sum()
+    
     for _, row in p_total.iterrows():
         code = row["Company Code"]
         tp_adj = row["TP Adjustment"]
@@ -567,37 +587,71 @@ def generate_tp_adjustments(sales_tx, opex_tx, companies_df, p_total, df_c_tp_se
         if abs(tp_adj) < 1.0 or row["TP Segment"] == "IP Principal":
             continue
             
-        partner = random.choice(principals) if principals else "EXTERNAL"
-        period = f"12.{year}"
-        
-        # Routine Entity posting (format matching OPEX sheet)
-        adj_entries.append({
-            "Company Code": code,
-            "Company": co_to_name[code],
-            "Country Code": co_to_country[code],
-            "Country": co_to_country[code],
-            "Region CoCo": "Europe",
-            "Year": year,
-            "PeriodRange": period,
-            "GL Account": "490000",
-            "GL Description": "Transfer Pricing Adjustment",
-            "MaterialNumber": "*",
-            "Brand": "*",
-            "BusinessType": "TP_ADJ",
-            "ValuationClass": "*",
-            "TradingPartner": partner,
-            "Trading Partner": partner,
-            "Trading": partner,
-            "TypeOfSales": "OPEX",
-            "RUNIT": co_to_currency[code],
-            "GlobalCurrency": "EUR",
-            "Price": 0,
-            "Total Sales": 0,
-            "Total Amount": round(tp_adj, 2)
-        })
-        
-        # Symmetric Principal posting
-        if partner != "EXTERNAL":
+        if not principals:
+            partner = "EXTERNAL"
+            period = f"12.{year}"
+            
+            # Routine Entity posting
+            adj_entries.append({
+                "Company Code": code,
+                "Company": co_to_name[code],
+                "Country Code": co_to_country[code],
+                "Country": co_to_country[code],
+                "Region CoCo": "Europe",
+                "Year": year,
+                "PeriodRange": period,
+                "GL Account": "490000",
+                "GL Description": "Transfer Pricing Adjustment",
+                "MaterialNumber": "*",
+                "Brand": "*",
+                "BusinessType": "TP_ADJ",
+                "ValuationClass": "*",
+                "TradingPartner": partner,
+                "Trading Partner": partner,
+                "Trading": partner,
+                "TypeOfSales": "OPEX",
+                "RUNIT": co_to_currency[code],
+                "GlobalCurrency": "EUR",
+                "Price": 0,
+                "Total Sales": 0,
+                "Total Amount": round(tp_adj, 2)
+            })
+            continue
+
+        # Split the tp_adj among all principals according to their weights
+        for partner, weight in principal_weights.items():
+            split_adj = tp_adj * weight
+            if abs(split_adj) < 0.01: continue
+            
+            period = f"12.{year}"
+            
+            # Routine Entity posting
+            adj_entries.append({
+                "Company Code": code,
+                "Company": co_to_name[code],
+                "Country Code": co_to_country[code],
+                "Country": co_to_country[code],
+                "Region CoCo": "Europe",
+                "Year": year,
+                "PeriodRange": period,
+                "GL Account": "490000",
+                "GL Description": "Transfer Pricing Adjustment",
+                "MaterialNumber": "*",
+                "Brand": "*",
+                "BusinessType": "TP_ADJ",
+                "ValuationClass": "*",
+                "TradingPartner": partner,
+                "Trading Partner": partner,
+                "Trading": partner,
+                "TypeOfSales": "OPEX",
+                "RUNIT": co_to_currency[code],
+                "GlobalCurrency": "EUR",
+                "Price": 0,
+                "Total Sales": 0,
+                "Total Amount": round(split_adj, 2)
+            })
+            
+            # Symmetric Principal posting
             adj_entries.append({
                 "Company Code": partner,
                 "Company": co_to_name[partner],
@@ -620,7 +674,7 @@ def generate_tp_adjustments(sales_tx, opex_tx, companies_df, p_total, df_c_tp_se
                 "GlobalCurrency": "EUR",
                 "Price": 0,
                 "Total Sales": 0,
-                "Total Amount": round(-tp_adj, 2)
+                "Total Amount": round(-split_adj, 2)
             })
             
     return pd.DataFrame(adj_entries)
