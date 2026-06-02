@@ -615,7 +615,7 @@ with tab3:
             export_df = report['companies'].copy()
             
             # 2. Pre-calculate compliance rates
-            df_comp = p_total.merge(df_benchmark[["TP Function", "Q1", "Q3"]], left_on="TP Segment", right_on="TP Function", how="left")
+            df_comp = p_total.merge(df_benchmark[["TP Function", "Q1", "Q3"]].rename(columns={"TP Function": "TP Segment"}), on="TP Segment", how="left")
             pre_margins = []
             post_margins = []
             companies_list = []

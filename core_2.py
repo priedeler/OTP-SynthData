@@ -36,9 +36,9 @@ def generate_materials(num_materials, brands=None, mat_classes=None, year=2025):
         brand = random.choice(brands) if isinstance(brands, list) and brands else "Generic"
         
         raw_price = round(random.uniform(5.0, 50.0), 2)
-        ic_price = round(raw_price * random.uniform(1.15, 1.40), 2)
-        mer_price = round(raw_price * random.uniform(1.10, 1.30), 2)
-        tp_price = round(max(ic_price, mer_price) * random.uniform(1.80, 3.50), 2)
+        ic_price = round(raw_price * random.uniform(1.80, 2.20), 2)
+        mer_price = round(ic_price * random.uniform(1.50, 1.80), 2)
+        tp_price = round(mer_price * random.uniform(1.30, 1.60), 2)
         
         qty = random.randint(100, 5000)
         
@@ -209,6 +209,7 @@ def generate_transactions(companies_df, materials_df, pnl_df, num_transactions, 
                 "ValuationClass": "RAW",
                 "TradingPartner": target_manufacturer,
                 "Trading Partner": target_manufacturer,
+                "Trading Partner Country": co_to_country.get(target_manufacturer, "Global") if target_manufacturer != "EXTERNAL" else "EXTERNAL",
                 "Trading Partner Region": "Global",
                 "TypeOfSales": "IC",
                 "RUNIT": co_to_currency[trader_seller],
@@ -267,6 +268,7 @@ def generate_transactions(companies_df, materials_df, pnl_df, num_transactions, 
                 "ValuationClass": "OMP",
                 "TradingPartner": buyer,
                 "Trading Partner": buyer,
+                "Trading Partner Country": co_to_country.get(buyer, "Global") if buyer != "EXTERNAL" else "EXTERNAL",
                 "Trading Partner Region": "Global",
                 "TypeOfSales": type_sales,
                 "RUNIT": co_to_currency[seller],
@@ -326,6 +328,7 @@ def generate_transactions(companies_df, materials_df, pnl_df, num_transactions, 
                     "ValuationClass": "OMP",
                     "TradingPartner": buyer,
                     "Trading Partner": buyer,
+                    "Trading Partner Country": co_to_country.get(buyer, "Global") if buyer != "EXTERNAL" else "EXTERNAL",
                     "Trading Partner Region": "Global",
                     "TypeOfSales": type_sales,
                     "RUNIT": co_to_currency[seller],
@@ -379,6 +382,7 @@ def generate_transactions(companies_df, materials_df, pnl_df, num_transactions, 
                 "ValuationClass": "OMP",
                 "TradingPartner": buyer,
                 "Trading Partner": buyer,
+                "Trading Partner Country": co_to_country.get(buyer, "Global") if buyer != "EXTERNAL" else "EXTERNAL",
                 "Trading Partner Region": "Global",
                 "TypeOfSales": "3P",
                 "RUNIT": co_to_currency[seller],
@@ -418,6 +422,7 @@ def generate_transactions(companies_df, materials_df, pnl_df, num_transactions, 
                 "ValuationClass": "*",
                 "TradingPartner": buyer,
                 "Trading Partner": buyer,
+                "Trading Partner Country": co_to_country.get(buyer, "Global") if buyer != "EXTERNAL" else "EXTERNAL",
                 "Trading Partner Region": "Global",
                 "TypeOfSales": "IC",
                 "RUNIT": co_to_currency[seller],
@@ -450,6 +455,7 @@ def generate_transactions(companies_df, materials_df, pnl_df, num_transactions, 
                 "ValuationClass": "*",
                 "TradingPartner": seller,
                 "Trading Partner": seller,
+                "Trading Partner Country": co_to_country.get(seller, "Global") if seller != "EXTERNAL" else "EXTERNAL",
                 "Trading Partner Region": "Global",
                 "TypeOfSales": "IC",
                 "RUNIT": co_to_currency[buyer],
@@ -770,8 +776,9 @@ def calculate_allocations(sales_tx, opex_tx, companies_df, df_benchmark, df_c_tp
     if return_all:
         # 1. P_Segmentation_Sales_COGS
         p_seg_sales = sales_tx.copy()
-        p_seg_sales.rename(columns={"Region CoCo": "Region", "Trading Partner": "Trading Partner Country"}, inplace=True)
-        p_seg_sales["TP Function"] = "Distributor"
+        p_seg_sales.rename(columns={"Region CoCo": "Region"}, inplace=True)
+        tp_func_map = dict(zip(df_c_tp_segment["Company Code"], df_c_tp_segment["TP Segment"]))
+        p_seg_sales["TP Function"] = p_seg_sales["Company Code"].map(tp_func_map)
         if "Column" in p_seg_sales.columns:
             p_seg_sales.drop(columns=["Column"], inplace=True)
 
@@ -791,7 +798,7 @@ def calculate_allocations(sales_tx, opex_tx, companies_df, df_benchmark, df_c_tp
         p_seg_opex["Total Amount COGS"] = 0
         p_seg_opex["Price Sales"] = 0
         p_seg_opex["Price COGS"] = 0
-        p_seg_opex["TP Function"] = "Distributor"
+        p_seg_opex["TP Function"] = p_seg_opex["Company Code"].map(tp_func_map)
         
         # 3. P_Direct Allocation
         p_direct = p_seg_opex.copy()

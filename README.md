@@ -54,7 +54,6 @@ After generating raw transactions, the system applies the **Functional Profile M
 │   └── OTP_Template.xlsx # Excel Export Template
 ├── cli_suite/          # CLI Tools for batch processing
 │   └── main_2.py       # Typer CLI Entry Point
-└── archive/            # Legacy versions and artifacts
 ```
 
 ---

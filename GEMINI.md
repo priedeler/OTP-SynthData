@@ -29,8 +29,7 @@ The routing engine in `core_2.py` is designed to be "cascading." If a pool (Prin
 
 ## Folder Structure
 - `/data`: Master data and templates.
-- `/cli_suite`: CLI tool and legacy CLI modules.
-- `/archive`: Old versions of the app.
+- `/cli_suite`: CLI tool for batch processing.
 - `core_2.py`: Shared backend logic.
 - `app_2.py`: Streamlit application.
 - `GEMINI.md`: This guide.
