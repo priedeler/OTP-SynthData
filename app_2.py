@@ -519,7 +519,7 @@ with tab3:
                     st.session_state['tp_roles'] = df_c_tp_segment
                     st.session_state['benchmark_data'] = df_benchmark
 
-                final_company_info = export_df.drop(columns=["Reroll", "Country Name", "Region"])
+                final_company_info = export_df.drop(columns=["Reroll", "Country Name", "Region"], errors='ignore')
                 final_region_mapping = pd.DataFrame({'Company code': export_df['Company Code'], 'Name': export_df['Company Name'], 'Country': export_df['Country Key'], 'Region': export_df['Region']})
 
                 df_mat_class = st.session_state['df_mat_class']
