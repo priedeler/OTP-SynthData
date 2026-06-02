@@ -11,7 +11,6 @@ The project follows a **Decoupled Three-Tier Architecture** to ensure a "Single 
 
 1.  **Core Logic Tier (`core_2.py`)**: The central engine containing all financial math, supply chain routing algorithms, and TP adjustment logic. It is shared by both the UI and CLI.
 2.  **Presentation Tier (`app_2.py`)**: A Streamlit-based interactive dashboard that allows users to visualize supply chains via network graphs, adjust benchmarks, and generate validated reports.
-3.  **Automation Tier (`cli_suite/`)**: A Typer-based Command Line Interface (CLI) designed for high-volume batch generation and automated reporting.
 
 ---
 
@@ -52,8 +51,6 @@ After generating raw transactions, the system applies the **Functional Profile M
 │   ├── All ISO...csv   # Global ISO/Country/Currency data
 │   ├── Citys_mit...csv # Global City database
 │   └── OTP_Template.xlsx # Excel Export Template
-├── cli_suite/          # CLI Tools for batch processing
-│   └── main_2.py       # Typer CLI Entry Point
 ```
 
 ---
@@ -72,15 +69,6 @@ pip install -r requirements.txt
 ### Running the UI
 ```bash
 streamlit run app_2.py
-```
-
-### Running the CLI
-```bash
-# Generate a dataset for 10 companies for the year 2026
-python cli_suite/main_2.py generate 10 --transactions 200 --year 2026 --output my_tp_data.xlsx
-
-# Generate a TP Allocation Report from existing data
-python cli_suite/main_2.py report my_tp_data.xlsx --output final_report.xlsx
 ```
 
 ---
