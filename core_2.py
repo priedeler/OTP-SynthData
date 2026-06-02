@@ -176,6 +176,7 @@ def generate_transactions(companies_df, materials_df, pnl_df, num_transactions, 
         # --- RESILIENT ROUTING ENGINE ---
         current_buyer = None
         current_price = None
+        product_sold_to_external = False
         
         # A. COMMODITY TRADER LEG (Optional raw material supply chain leg)
         trader_seller = None
@@ -284,75 +285,83 @@ def generate_transactions(companies_df, materials_df, pnl_df, num_transactions, 
             else:
                 current_buyer = None
                 current_price = None
+                product_sold_to_external = True
 
         # C. PRINCIPAL LEG
-        if principals:
-            seller = current_buyer if (current_buyer in principals) else random.choice(principals)
-            if distributors and random.random() < 0.80:
-                buyer = random.choice(distributors)
-                type_sales = "IC"
-                price_sales = material["MER Material Price"]
+        if principals and not product_sold_to_external:
+            if current_buyer is not None and current_buyer not in principals:
+                pass # Bypassed Principal
             else:
-                buyer = "EXTERNAL"
-                type_sales = "3P"
-                price_sales = material["3P Sales Price"]
-            
-            price_cogs = current_price if current_buyer == seller else material["Raw Material Price"]
-            cogs_type = "IC" if current_buyer == seller else "3P"
-            
-            revenue = round(qty * price_sales, 2)
-            cogs = round(qty * price_cogs, 2)
-            
-            sales_tx.append({
-                "Company Code": seller,
-                "Company": co_to_name[seller],
-                "Country Code": co_to_country[seller],
-                "Country": co_to_country[seller],
-                "Region CoCo": "Europe",
-                "Year": year,
-                "PeriodRange": period,
-                "GL Account Sales": ic_sales_acc if type_sales == "IC" else tp_sales_acc,
-                "GL Description Sales": "Sales",
-                "GL Account COGS": ic_cogs_acc if cogs_type == "IC" else tp_cogs_acc,
-                "GL Description COGS": "COGS",
-                "MaterialNumber": material["Material"],
-                "Brand": material["Brand"],
-                "BusinessType": "Sales",
-                "ValuationClass": "OMP",
-                "TradingPartner": buyer,
-                "Trading Partner": buyer,
-                "Trading Partner Region": "Global",
-                "TypeOfSales": type_sales,
-                "RUNIT": co_to_currency[seller],
-                "GlobalCurrency": "EUR",
-                "Price Sales": price_sales,
-                "Price COGS": price_cogs,
-                "Total Sales": qty,
-                "Total Amount Sales": revenue,
-                "Total Amount COGS": -cogs,
-                "Column": ""
-            })
-            revenue_tracker[seller] += revenue
-            if buyer != "EXTERNAL":
-                current_buyer = buyer
-                current_price = price_sales
-            else:
-                current_buyer = None
-                current_price = None
+                seller = current_buyer if current_buyer else random.choice(principals)
+                if distributors and random.random() < 0.80:
+                    buyer = random.choice(distributors)
+                    type_sales = "IC"
+                    price_sales = material["MER Material Price"]
+                else:
+                    buyer = "EXTERNAL"
+                    type_sales = "3P"
+                    price_sales = material["3P Sales Price"]
+                
+                price_cogs = current_price if current_price is not None else material["Raw Material Price"]
+                cogs_type = "IC" if current_price is not None else "3P"
+                
+                revenue = round(qty * price_sales, 2)
+                cogs = round(qty * price_cogs, 2)
+                
+                sales_tx.append({
+                    "Company Code": seller,
+                    "Company": co_to_name[seller],
+                    "Country Code": co_to_country[seller],
+                    "Country": co_to_country[seller],
+                    "Region CoCo": "Europe",
+                    "Year": year,
+                    "PeriodRange": period,
+                    "GL Account Sales": ic_sales_acc if type_sales == "IC" else tp_sales_acc,
+                    "GL Description Sales": "Sales",
+                    "GL Account COGS": ic_cogs_acc if cogs_type == "IC" else tp_cogs_acc,
+                    "GL Description COGS": "COGS",
+                    "MaterialNumber": material["Material"],
+                    "Brand": material["Brand"],
+                    "BusinessType": "Sales",
+                    "ValuationClass": "OMP",
+                    "TradingPartner": buyer,
+                    "Trading Partner": buyer,
+                    "Trading Partner Region": "Global",
+                    "TypeOfSales": type_sales,
+                    "RUNIT": co_to_currency[seller],
+                    "GlobalCurrency": "EUR",
+                    "Price Sales": price_sales,
+                    "Price COGS": price_cogs,
+                    "Total Sales": qty,
+                    "Total Amount Sales": revenue,
+                    "Total Amount COGS": -cogs,
+                    "Column": ""
+                })
+                revenue_tracker[seller] += revenue
+                if buyer != "EXTERNAL":
+                    current_buyer = buyer
+                    current_price = price_sales
+                else:
+                    current_buyer = None
+                    current_price = None
+                    product_sold_to_external = True
 
         # D. DISTRIBUTION LEG
-        if distributors:
-            seller = current_buyer if (current_buyer in distributors) else random.choice(distributors)
-            buyer = "EXTERNAL"
-            
-            price_cogs = current_price if current_buyer == seller else material["MER Material Price"]
-            price_sales = material["3P Sales Price"]
-            cogs_type = "IC" if current_buyer == seller else "3P"
-            
-            revenue = round(qty * price_sales, 2)
-            cogs = round(qty * price_cogs, 2)
-            
-            sales_tx.append({
+        if distributors and not product_sold_to_external:
+            if current_buyer is not None and current_buyer not in distributors:
+                pass # Should not happen unless bypassed distributor
+            else:
+                seller = current_buyer if current_buyer else random.choice(distributors)
+                buyer = "EXTERNAL"
+                
+                price_cogs = current_price if current_price is not None else material["MER Material Price"]
+                price_sales = material["3P Sales Price"]
+                cogs_type = "IC" if current_price is not None else "3P"
+                
+                revenue = round(qty * price_sales, 2)
+                cogs = round(qty * price_cogs, 2)
+                
+                sales_tx.append({
                 "Company Code": seller,
                 "Company": co_to_name[seller],
                 "Country Code": co_to_country[seller],
