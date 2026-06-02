@@ -225,7 +225,7 @@ def get_coordinates(city, country):
         if location:
             return location.latitude, location.longitude
         return None, None
-    except GeocoderTimedOut:
+    except Exception:
         return None, None
 
 def init_default_state():
@@ -237,7 +237,11 @@ def init_default_state():
         company_coords = {}
         map_coords = []
         for _, row in demo_companies.iterrows():
-            c_lat, c_lon = get_coordinates(row['City'], row['Country Name'])
+            if 'lat' in row and 'lon' in row:
+                c_lat, c_lon = row['lat'], row['lon']
+            else:
+                c_lat, c_lon = get_coordinates(row['City'], row['Country Name'])
+            
             if c_lat and c_lon:
                 company_coords[row['Company Code']] = (c_lat, c_lon)
                 map_coords.append({'lat': c_lat, 'lon': c_lon})
