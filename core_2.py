@@ -224,7 +224,13 @@ def generate_transactions(companies_df, materials_df, pnl_df, num_transactions, 
         if manufacturers:
             seller = target_manufacturer if (trader_seller is not None) else random.choice(manufacturers)
             
-            if principals:
+            if principals and distributors:
+                if random.random() < 0.20:
+                    buyer = random.choice(distributors)
+                else:
+                    buyer = random.choice(principals)
+                type_sales = "IC"
+            elif principals:
                 buyer = random.choice(principals)
                 type_sales = "IC"
             elif distributors:
@@ -277,7 +283,7 @@ def generate_transactions(companies_df, materials_df, pnl_df, num_transactions, 
         # C. PRINCIPAL LEG
         if principals:
             seller = current_buyer if (current_buyer in principals) else random.choice(principals)
-            if distributors:
+            if distributors and random.random() < 0.80:
                 buyer = random.choice(distributors)
                 type_sales = "IC"
                 price_sales = material["MER Material Price"]
