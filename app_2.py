@@ -35,20 +35,18 @@ st.markdown("""
     
     html, body, [class*="css"], .stApp {
         font-family: 'Outfit', sans-serif !important;
-        background-color: #1A1D20 !important; /* $dark-gray */
-        color: #F2F3F5 !important; /* $light-gray */
     }
     
     /* Sleek gradient background for header */
     .header-gradient {
-        background: linear-gradient(135deg, #1A1D20 0%, #2B2D31 100%);
+        background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
         padding: 2.5rem;
         border-radius: 16px;
-        color: #F2F3F5;
+        color: white;
         margin-bottom: 2rem;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.15);
         text-align: center;
-        border: 1px solid #8B8D91;
+        border: 1px solid rgba(255,255,255,0.05);
     }
     
     .header-gradient h1 {
@@ -56,7 +54,7 @@ st.markdown("""
         padding-bottom: 0.5rem !important;
         font-weight: 700 !important;
         font-size: 2.5rem !important;
-        background: linear-gradient(to right, #FFD700, #F2F3F5); /* $primary to $light-gray */
+        background: linear-gradient(to right, #00e5ff, #12c2e9, #c471ed, #f64f59);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
     }
@@ -65,39 +63,29 @@ st.markdown("""
         margin: 0 !important;
         font-size: 1.1rem !important;
         opacity: 0.8;
-        color: #D1D3D6; /* $second-light-gray */
     }
     
     /* Glassmorphism Metric Cards */
     div[data-testid="stMetric"] {
-        background: #2B2D31; /* $medium-gray */
-        border: 1px solid #8B8D91;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.05);
         border-radius: 16px;
         padding: 1.5rem !important;
-        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
-        border-left: 5px solid #FFD700; /* $primary */
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        border-left: 5px solid #00c9ff;
         transition: all 0.3s ease-in-out;
     }
     
     div[data-testid="stMetric"]:hover {
         transform: translateY(-5px);
-        box-shadow: 0 12px 40px 0 rgba(255, 215, 0, 0.2);
-        border-left-color: #D32F2F; /* $warning */
-    }
-    
-    div[data-testid="stMetricLabel"] p {
-        color: #D1D3D6 !important;
-    }
-    
-    div[data-testid="stMetricValue"] div {
-        color: #FFD700 !important;
+        box-shadow: 0 12px 40px 0 rgba(0, 229, 255, 0.1);
+        border-left-color: #f64f59;
     }
     
     /* Styled buttons with micro-animations */
     .stButton>button {
-        background-color: #2B2D31 !important;
-        color: #F2F3F5 !important;
-        border: 1px solid #FFD700 !important;
         border-radius: 8px !important;
         font-weight: 600 !important;
         letter-spacing: 0.5px !important;
@@ -106,36 +94,21 @@ st.markdown("""
     
     .stButton>button:hover {
         transform: scale(1.02) !important;
-        box-shadow: 0 4px 15px rgba(255, 215, 0, 0.4) !important;
-        background-color: #FFD700 !important;
-        color: #1A1D20 !important;
-    }
-    
-    .stButton>button[kind="primary"] {
-        background-color: #FFD700 !important;
-        color: #1A1D20 !important;
-        border: none !important;
-    }
-    
-    .stButton>button[kind="primary"]:hover {
-        background-color: #F2F3F5 !important;
-        color: #1A1D20 !important;
-        box-shadow: 0 4px 15px rgba(242, 243, 245, 0.4) !important;
+        box-shadow: 0 4px 15px rgba(0, 229, 255, 0.25) !important;
     }
     
     /* Style headers */
-    h1, h2, h3, h4, h5, h6 {
+    h1, h2, h3 {
         font-weight: 700 !important;
         letter-spacing: -0.5px !important;
-        color: #F2F3F5 !important;
     }
     
     /* Custom container for Plotly charts */
     .chart-container {
-        border: 1px solid #8B8D91;
+        border: 1px solid rgba(255, 255, 255, 0.05);
         border-radius: 12px;
         padding: 1rem;
-        background: #2B2D31;
+        background: rgba(255, 255, 255, 0.02);
     }
 </style>
 """, unsafe_allow_html=True)
@@ -157,11 +130,11 @@ def build_flow_state(companies_df, tp_roles_df=None, transactions_df=None):
 
     # Segment configuration
     segment_configs = {
-        "Commodity Trader": {"x": 50, "style": {'backgroundColor': '#D1D3D6', 'border': '2px solid #8B8D91', 'color': '#1A1D20'}},
-        "Contract Manufacturer": {"x": 350, "style": {'backgroundColor': '#F2F3F5', 'border': '2px solid #8B8D91', 'color': '#1A1D20'}},
-        "Service Provider": {"x": 350, "style": {'backgroundColor': '#2196F3', 'border': '2px solid #F2F3F5', 'color': '#F2F3F5'}},
-        "IP Principal": {"x": 700, "style": {'backgroundColor': '#FFD700', 'border': '2px solid #F2F3F5', 'color': '#1A1D20'}},
-        "Distributor": {"x": 1050, "style": {'backgroundColor': '#4CAF50', 'border': '2px solid #F2F3F5', 'color': '#F2F3F5'}}
+        "Commodity Trader": {"x": 50, "style": {'backgroundColor': '#e0f7fa', 'border': '2px solid #00acc1', 'color': 'black'}},
+        "Contract Manufacturer": {"x": 350, "style": {'backgroundColor': '#e8f5e9', 'border': '2px solid #4caf50', 'color': 'black'}},
+        "Service Provider": {"x": 350, "style": {'backgroundColor': '#f3e5f5', 'border': '2px solid #9c27b0', 'color': 'black'}},
+        "IP Principal": {"x": 700, "style": {'backgroundColor': '#fff8e1', 'border': '2px solid #ffc107', 'color': 'black'}},
+        "Distributor": {"x": 1050, "style": {'backgroundColor': '#e3f2fd', 'border': '2px solid #2196f3', 'color': 'black'}}
     }
     
     y_counters = {
@@ -778,10 +751,10 @@ with tab3:
                     textposition = "outside",
                     text = [f"{v/1e6:,.1f}M" for v in [rev, -cogs, gp, -opex, pre_ebit, tp_adj, final_ebit]],
                     y = [rev, -cogs, 0, -opex, 0, tp_adj, 0],
-                    connector = {"line":{"color":"#8B8D91", "width":1}},
-                    decreasing = {"marker":{"color":"#D32F2F"}},
-                    increasing = {"marker":{"color":"#4CAF50"}},
-                    totals = {"marker":{"color":"#FFD700"}}
+                    connector = {"line":{"color":"rgba(255,255,255,0.2)", "width":1}},
+                    decreasing = {"marker":{"color":"#f64f59"}},
+                    increasing = {"marker":{"color":"#12c2e9"}},
+                    totals = {"marker":{"color":"#00e5ff"}}
                 ))
                 fig_waterfall.update_layout(
                     title="Consolidated Group P&L Flow (EUR)",
@@ -808,19 +781,21 @@ with tab3:
                             layer="below"
                         )
                     
+                    # Add Q1, Median, Q3 markers
                     fig_comp.add_trace(go.Scatter(
                         x=[m * 100 for m in median_list],
                         y=companies_list,
                         mode="markers",
-                        marker=dict(symbol="line-ns-open", size=14, line_width=3, color="#FFD700"),
+                        marker=dict(symbol="line-ns-open", size=14, line_width=3, color="#ffc107"),
                         name="Target Median"
                     ))
                     
+                    # Add Pre-Adjustment Margin
                     fig_comp.add_trace(go.Scatter(
                         x=[m * 100 for m in pre_margins],
                         y=companies_list,
                         mode="markers",
-                        marker=dict(symbol="circle", size=10, color="#D32F2F"),
+                        marker=dict(symbol="circle", size=10, color="#f64f59"),
                         name="Pre-Adjustment"
                     ))
                     
