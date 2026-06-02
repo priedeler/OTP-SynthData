@@ -1,0 +1,352 @@
+def generate_transactions(companies_df, materials_df, pnl_df, num_transactions, df_c_tp_segment, year=2025, qty_max=100, service_fee_min=5000, service_fee_max=25000, opex_min=0.08, opex_max=0.35):
+    sales_tx = []
+    company_codes = companies_df["Company Code"].tolist()
+    
+    co_to_country = dict(zip(companies_df["Company Code"], companies_df["Country Key"]))
+    co_to_name = dict(zip(companies_df["Company Code"], companies_df["Company Name"]))
+    co_to_currency = dict(zip(companies_df["Company Code"], companies_df["Co Currency"]))
+    co_to_segment = dict(zip(df_c_tp_segment["Company Code"], df_c_tp_segment["TP Segment"]))
+    
+    principals = df_c_tp_segment[df_c_tp_segment["TP Segment"] == "IP Principal"]["Company Code"].tolist()
+    distributors = df_c_tp_segment[df_c_tp_segment["TP Segment"].str.contains("Distributor")]["Company Code"].tolist()
+    manufacturers = df_c_tp_segment[df_c_tp_segment["TP Segment"].str.contains("Manufacturer")]["Company Code"].tolist()
+    service_providers = df_c_tp_segment[df_c_tp_segment["TP Segment"] == "Service Provider"]["Company Code"].tolist()
+    commodity_traders = df_c_tp_segment[df_c_tp_segment["TP Segment"] == "Commodity Trader"]["Company Code"].tolist()
+    
+    ic_sales_acc = "400000"
+    tp_sales_acc = "410000"
+    ic_cogs_acc = "500000"
+    tp_cogs_acc = "510000"
+    
+    revenue_tracker = {code: 0 for code in company_codes}
+    
+    # Speed Optimization: Convert materials DataFrame to a list of dictionaries
+    materials_list = materials_df.to_dict('records')
+
+    for flow_id in range(num_transactions):
+        material = random.choice(materials_list)
+        qty = random.randint(1, int(qty_max))
+        month = random.randint(1, 12)
+        period = f"{str(month).zfill(2)}.{year}"
+
+        # --- RESILIENT ROUTING ENGINE ---
+        current_buyer = None
+        
+        # A. COMMODITY TRADER LEG (Optional raw material supply chain leg)
+        trader_seller = None
+        target_manufacturer = None
+        if commodity_traders and manufacturers:
+            trader_seller = random.choice(commodity_traders)
+            target_manufacturer = random.choice(manufacturers)
+            
+            price_sales = material["IC Sales Price"]
+            price_cogs = material["Raw Material Price"]
+            revenue = round(qty * price_sales, 2)
+            cogs = round(qty * price_cogs, 2)
+            
+            # Trader sells Raw Materials to Manufacturer (IC Sales)
+            sales_tx.append({
+                "Company Code": trader_seller,
+                "Company": co_to_name[trader_seller],
+                "Country Code": co_to_country[trader_seller],
+                "Country": co_to_country[trader_seller],
+                "Region CoCo": "Europe",
+                "Year": year,
+                "PeriodRange": period,
+                "GL Account Sales": ic_sales_acc,
+                "GL Description Sales": "Sales",
+                "GL Account COGS": tp_cogs_acc,
+                "GL Description COGS": "COGS",
+                "MaterialNumber": material["Material"],
+                "Brand": material["Brand"],
+                "BusinessType": "Sales",
+                "ValuationClass": "RAW",
+                "TradingPartner": target_manufacturer,
+                "Trading Partner": target_manufacturer,
+                "Trading Partner Region": "Global",
+                "TypeOfSales": "IC",
+                "RUNIT": co_to_currency[trader_seller],
+                "GlobalCurrency": "EUR",
+                "Price Sales": price_sales,
+                "Price COGS": price_cogs,
+                "Total Sales": qty,
+                "Total Amount Sales": revenue,
+                "Total Amount COGS": -cogs,
+                "Column": ""
+            })
+            revenue_tracker[trader_seller] += revenue
+            
+        # B. MANUFACTURING LEG
+        if manufacturers:
+            seller = target_manufacturer if (trader_seller is not None) else random.choice(manufacturers)
+            
+            if principals and distributors:
+                if random.random() < 0.20:
+                    buyer = random.choice(distributors)
+                else:
+                    buyer = random.choice(principals)
+                type_sales = "IC"
+            elif principals:
+                buyer = random.choice(principals)
+                type_sales = "IC"
+            elif distributors:
+                buyer = random.choice(distributors)
+                type_sales = "IC"
+            else:
+                buyer = "EXTERNAL"
+                type_sales = "3P"
+            
+            price_sales = material["IC Sales Price"] if buyer != "EXTERNAL" else material["3P Sales Price"]
+            price_cogs = material["IC Sales Price"] if (trader_seller is not None) else material["Raw Material Price"]
+            cogs_type = "IC" if (trader_seller is not None) else "3P"
+            
+            revenue = round(qty * price_sales, 2)
+            cogs = round(qty * price_cogs, 2)
+            
+            sales_tx.append({
+                "Company Code": seller,
+                "Company": co_to_name[seller],
+                "Country Code": co_to_country[seller],
+                "Country": co_to_country[seller],
+                "Region CoCo": "Europe",
+                "Year": year,
+                "PeriodRange": period,
+                "GL Account Sales": ic_sales_acc if type_sales == "IC" else tp_sales_acc,
+                "GL Description Sales": "Sales",
+                "GL Account COGS": ic_cogs_acc if cogs_type == "IC" else tp_cogs_acc,
+                "GL Description COGS": "COGS",
+                "MaterialNumber": material["Material"],
+                "Brand": material["Brand"],
+                "BusinessType": "Sales",
+                "ValuationClass": "OMP",
+                "TradingPartner": buyer,
+                "Trading Partner": buyer,
+                "Trading Partner Region": "Global",
+                "TypeOfSales": type_sales,
+                "RUNIT": co_to_currency[seller],
+                "GlobalCurrency": "EUR",
+                "Price Sales": price_sales,
+                "Price COGS": price_cogs,
+                "Total Sales": qty,
+                "Total Amount Sales": revenue,
+                "Total Amount COGS": -cogs,
+                "Column": ""
+            })
+            revenue_tracker[seller] += revenue
+            if buyer != "EXTERNAL":
+                current_buyer = buyer
+
+        # C. PRINCIPAL LEG
+        if principals:
+            seller = current_buyer if (current_buyer in principals) else random.choice(principals)
+            if distributors and random.random() < 0.80:
+                buyer = random.choice(distributors)
+                type_sales = "IC"
+                price_sales = material["MER Material Price"]
+            else:
+                buyer = "EXTERNAL"
+                type_sales = "3P"
+                price_sales = material["3P Sales Price"]
+            
+            price_cogs = material["IC Sales Price"] if current_buyer == seller else material["Raw Material Price"]
+            cogs_type = "IC" if current_buyer == seller else "3P"
+            
+            revenue = round(qty * price_sales, 2)
+            cogs = round(qty * price_cogs, 2)
+            
+            sales_tx.append({
+                "Company Code": seller,
+                "Company": co_to_name[seller],
+                "Country Code": co_to_country[seller],
+                "Country": co_to_country[seller],
+                "Region CoCo": "Europe",
+                "Year": year,
+                "PeriodRange": period,
+                "GL Account Sales": ic_sales_acc if type_sales == "IC" else tp_sales_acc,
+                "GL Description Sales": "Sales",
+                "GL Account COGS": ic_cogs_acc if cogs_type == "IC" else tp_cogs_acc,
+                "GL Description COGS": "COGS",
+                "MaterialNumber": material["Material"],
+                "Brand": material["Brand"],
+                "BusinessType": "Sales",
+                "ValuationClass": "OMP",
+                "TradingPartner": buyer,
+                "Trading Partner": buyer,
+                "Trading Partner Region": "Global",
+                "TypeOfSales": type_sales,
+                "RUNIT": co_to_currency[seller],
+                "GlobalCurrency": "EUR",
+                "Price Sales": price_sales,
+                "Price COGS": price_cogs,
+                "Total Sales": qty,
+                "Total Amount Sales": revenue,
+                "Total Amount COGS": -cogs,
+                "Column": ""
+            })
+            revenue_tracker[seller] += revenue
+            if buyer != "EXTERNAL":
+                current_buyer = buyer
+            else:
+                current_buyer = None
+
+        # D. DISTRIBUTION LEG
+        if distributors:
+            seller = current_buyer if (current_buyer in distributors) else random.choice(distributors)
+            buyer = "EXTERNAL"
+            
+            price_cogs = material["MER Material Price"]
+            price_sales = material["3P Sales Price"]
+            
+            revenue = round(qty * price_sales, 2)
+            cogs = round(qty * price_cogs, 2)
+            
+            sales_tx.append({
+                "Company Code": seller,
+                "Company": co_to_name[seller],
+                "Country Code": co_to_country[seller],
+                "Country": co_to_country[seller],
+                "Region CoCo": "Europe",
+                "Year": year,
+                "PeriodRange": period,
+                "GL Account Sales": tp_sales_acc,
+                "GL Description Sales": "Sales",
+                "GL Account COGS": ic_cogs_acc,
+                "GL Description COGS": "COGS",
+                "MaterialNumber": material["Material"],
+                "Brand": material["Brand"],
+                "BusinessType": "Sales",
+                "ValuationClass": "OMP",
+                "TradingPartner": buyer,
+                "Trading Partner": buyer,
+                "Trading Partner Region": "Global",
+                "TypeOfSales": "3P",
+                "RUNIT": co_to_currency[seller],
+                "GlobalCurrency": "EUR",
+                "Price Sales": price_sales,
+                "Price COGS": price_cogs,
+                "Total Sales": qty,
+                "Total Amount Sales": revenue,
+                "Total Amount COGS": -cogs,
+                "Column": ""
+            })
+            revenue_tracker[seller] += revenue
+
+        # E. SERVICE PROVIDERS (Symmetric IC Accounting)
+        if service_providers and random.random() < 0.20:
+            seller = random.choice(service_providers)
+            buyer = random.choice(principals) if principals else (random.choice(distributors) if distributors else random.choice(company_codes))
+            
+            service_fee = round(random.uniform(service_fee_min, service_fee_max), 2)
+            
+            # Seller Revenue Row
+            sales_tx.append({
+                "Company Code": seller,
+                "Company": co_to_name[seller],
+                "Country Code": co_to_country[seller],
+                "Country": co_to_country[seller],
+                "Region CoCo": "Europe",
+                "Year": year,
+                "PeriodRange": period,
+                "GL Account Sales": ic_sales_acc,
+                "GL Description Sales": "Service Fee",
+                "GL Account COGS": ic_cogs_acc,
+                "GL Description COGS": "Cost of Services",
+                "MaterialNumber": "*",
+                "Brand": "*",
+                "BusinessType": "Service",
+                "ValuationClass": "*",
+                "TradingPartner": buyer,
+                "Trading Partner": buyer,
+                "Trading Partner Region": "Global",
+                "TypeOfSales": "IC",
+                "RUNIT": co_to_currency[seller],
+                "GlobalCurrency": "EUR",
+                "Price Sales": service_fee,
+                "Price COGS": 0,
+                "Total Sales": 1,
+                "Total Amount Sales": service_fee,
+                "Total Amount COGS": 0,
+                "Column": ""
+            })
+            revenue_tracker[seller] += service_fee
+
+            # Buyer Expense Row
+            sales_tx.append({
+                "Company Code": buyer,
+                "Company": co_to_name[buyer],
+                "Country Code": co_to_country[buyer],
+                "Country": co_to_country[buyer],
+                "Region CoCo": "Europe",
+                "Year": year,
+                "PeriodRange": period,
+                "GL Account Sales": ic_sales_acc,
+                "GL Description Sales": "Service Fee",
+                "GL Account COGS": ic_cogs_acc,
+                "GL Description COGS": "Purchased Services",
+                "MaterialNumber": "*",
+                "Brand": "*",
+                "BusinessType": "Service",
+                "ValuationClass": "*",
+                "TradingPartner": seller,
+                "Trading Partner": seller,
+                "Trading Partner Region": "Global",
+                "TypeOfSales": "IC",
+                "RUNIT": co_to_currency[buyer],
+                "GlobalCurrency": "EUR",
+                "Price Sales": 0,
+                "Price COGS": service_fee,
+                "Total Sales": 0,
+                "Total Amount Sales": 0,
+                "Total Amount COGS": -service_fee,
+                "Column": ""
+            })
+
+    # OPEX transactions (Scaled to Revenue)
+    opex_tx = []
+    opex_accounts = [("600000", "Marketing"), ("610000", "R&D"), ("620000", "General Admin"), ("630000", "Logistics")]
+    
+    for code, revenue in revenue_tracker.items():
+        segment = co_to_segment.get(code, "Unknown")
+        # Minimum OPEX if no revenue
+        annual_opex = revenue * random.uniform(opex_min, opex_max) if revenue > 0 else random.uniform(50000, 200000)
+            
+        amount_per_entry = annual_opex / (len(opex_accounts) * 12)
+
+        for opex_flow_id, (acc_code, acc_desc) in enumerate(opex_accounts):
+            for month in range(1, 13):
+                period = f"{str(month).zfill(2)}.{year}"
+                monthly_amount = round(amount_per_entry * random.uniform(0.85, 1.15), 2)
+                
+                if segment == "Service Provider" and principals:
+                    partner = random.choice(principals)
+                else:
+                    partner = "VARIOUS"
+                    
+                opex_tx.append({
+                    "Company Code": code,
+                    "Company": co_to_name[code],
+                    "Country Code": co_to_country[code],
+                    "Country": co_to_country[code],
+                    "Region CoCo": "Europe",
+                    "Year": year,
+                    "PeriodRange": period,
+                    "GL Account": acc_code,
+                    "GL Description": acc_desc,
+                    "MaterialNumber": "*",
+                    "Brand": "*",
+                    "BusinessType": "OPEX",
+                    "ValuationClass": "*",
+                    "TradingPartner": partner,
+                    "Trading Partner": partner,
+                    "Trading": partner,
+                    "TypeOfSales": "OPEX",
+                    "RUNIT": co_to_currency[code],
+                    "GlobalCurrency": "EUR",
+                    "Price": 0,
+                    "Total Sales": 0,
+                    "Total Amount": monthly_amount
+                })
+
+    return pd.DataFrame(sales_tx), pd.DataFrame(opex_tx)
+
+
