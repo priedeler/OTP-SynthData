@@ -12,7 +12,7 @@ import numpy as np
 from core_2 import (
     generate_company_name, generate_materials, generate_master_data,
     generate_config_data, generate_transactions, calculate_allocations,
-    generate_tp_adjustments
+    generate_tp_adjustments, get_demo_scenario
 )
 
 # Plotly Imports
@@ -227,6 +227,32 @@ def get_coordinates(city, country):
         return None, None
     except GeocoderTimedOut:
         return None, None
+
+def init_default_state():
+    if 'company_data' not in st.session_state:
+        demo_companies, demo_roles = get_demo_scenario()
+        st.session_state['company_data'] = demo_companies
+        st.session_state['tp_roles'] = demo_roles
+        
+        company_coords = {}
+        map_coords = []
+        for _, row in demo_companies.iterrows():
+            c_lat, c_lon = get_coordinates(row['City'], row['Country Name'])
+            if c_lat and c_lon:
+                company_coords[row['Company Code']] = (c_lat, c_lon)
+                map_coords.append({'lat': c_lat, 'lon': c_lon})
+        st.session_state['company_coords'] = company_coords
+        st.session_state['map_coords'] = map_coords
+        
+        df_mat_class, df_material = generate_materials(20)
+        st.session_state['df_mat_class'] = df_mat_class
+        st.session_state['df_material'] = df_material
+        
+        df_pnl, df_segments = generate_master_data()
+        _, df_benchmark, _ = generate_config_data(demo_companies, df_segments)
+        st.session_state['benchmark_data'] = df_benchmark
+
+init_default_state()
 
 st.markdown("<div class='header-gradient'><h1>Global Company & Material Data Generator</h1><p>Next-Generation Synthetic Data Generator for SAP PaPM Operational TP Demos</p></div>", unsafe_allow_html=True)
 

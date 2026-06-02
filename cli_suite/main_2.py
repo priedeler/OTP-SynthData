@@ -38,7 +38,7 @@ def main(
 
 @app.command()
 def generate(
-    num_companies: int = typer.Argument(..., help="Number of companies to generate"),
+    num_companies: int = typer.Argument(0, help="Number of companies to generate (0 to use demo scenario)"),
     genre: str = typer.Option("General", "--genre", "-g", help="Company genre (Tech, Health, etc.)"),
     materials: int = typer.Option(20, "--materials", "-m", help="Number of materials"),
     transactions: int = typer.Option(100, "--transactions", "-t", help="Number of transactions"),
@@ -60,22 +60,29 @@ def generate(
             df_pnl, df_segments = core.generate_master_data()
             
             # Step 2: Companies
-            progress.add_task(description=f"Generating {num_companies} companies...", total=None)
-            company_data = []
-            for i in range(1, num_companies + 1):
-                country = random_choice_country()
-                company_data.append({
-                    "Company Code": f"Co{str(i).zfill(2)}",
-                    "Company Name": core.generate_company_name(genre),
-                    "Country Key": country,
-                    "Co Currency": "EUR",
-                    "Group Currency": "EUR"
-                })
-            companies_df = pd.DataFrame(company_data)
+            if num_companies == 0:
+                progress.add_task(description="Loading demo scenario...", total=None)
+                companies_df, df_tp_roles = core.get_demo_scenario(year=year)
+            else:
+                progress.add_task(description=f"Generating {num_companies} companies...", total=None)
+                company_data = []
+                for i in range(1, num_companies + 1):
+                    country = random_choice_country()
+                    company_data.append({
+                        "Company Code": f"Co{str(i).zfill(2)}",
+                        "Company Name": core.generate_company_name(genre),
+                        "Country Key": country,
+                        "Co Currency": "EUR",
+                        "Group Currency": "EUR"
+                    })
+                companies_df = pd.DataFrame(company_data)
             
             # Step 3: Config
             progress.add_task(description="Calculating TP configurations...", total=None)
-            df_tp_roles, df_benchmarks, df_indirect = core.generate_config_data(companies_df, df_segments, year=year)
+            if num_companies == 0:
+                _, df_benchmarks, df_indirect = core.generate_config_data(companies_df, df_segments, year=year)
+            else:
+                df_tp_roles, df_benchmarks, df_indirect = core.generate_config_data(companies_df, df_segments, year=year)
             
             # Step 4: Materials
             progress.add_task(description=f"Generating {materials} materials...", total=None)

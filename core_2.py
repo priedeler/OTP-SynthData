@@ -494,6 +494,60 @@ def generate_transactions(companies_df, materials_df, pnl_df, num_transactions, 
     return pd.DataFrame(sales_tx), pd.DataFrame(opex_tx)
 
 
+def get_demo_scenario(year=2025):
+    """
+    Returns a hardcoded companies_df and df_c_tp_segment representing 
+    the exact supply chain scenario provided in the diagram.
+    """
+    companies = [
+        {"Company Code": "Co00", "Company Name": generate_company_name("General"), "City": "Zurich", "Country Name": "Switzerland", "Region": "Europe", "Country Key": "CHE", "Co Currency": "CHF", "Group Currency": "EUR", "Language Key": "EN", "Chart of Accounts": "COA", "TP Segment": "IP Principal"},
+        {"Company Code": "Co01-M", "Company Name": generate_company_name("General") + " Mfg", "City": "Paris", "Country Name": "France", "Region": "Europe", "Country Key": "FRA", "Co Currency": "EUR", "Group Currency": "EUR", "Language Key": "EN", "Chart of Accounts": "COA", "TP Segment": "Routine Manufacturer"},
+        {"Company Code": "Co02", "Company Name": generate_company_name("General"), "City": "Warsaw", "Country Name": "Poland", "Region": "Europe", "Country Key": "POL", "Co Currency": "PLN", "Group Currency": "EUR", "Language Key": "EN", "Chart of Accounts": "COA", "TP Segment": "Routine Manufacturer"},
+        {"Company Code": "Co03", "Company Name": generate_company_name("General"), "City": "Shanghai", "Country Name": "China", "Region": "Asia Pacific", "Country Key": "CHN", "Co Currency": "CNY", "Group Currency": "EUR", "Language Key": "EN", "Chart of Accounts": "COA", "TP Segment": "Routine Manufacturer"},
+        {"Company Code": "Co01-D", "Company Name": generate_company_name("General") + " Dist", "City": "Lyon", "Country Name": "France", "Region": "Europe", "Country Key": "FRA", "Co Currency": "EUR", "Group Currency": "EUR", "Language Key": "EN", "Chart of Accounts": "COA", "TP Segment": "Distributor - TNMM"},
+        {"Company Code": "Co04", "Company Name": generate_company_name("General"), "City": "Berlin", "Country Name": "Germany", "Region": "Europe", "Country Key": "DEU", "Co Currency": "EUR", "Group Currency": "EUR", "Language Key": "EN", "Chart of Accounts": "COA", "TP Segment": "Distributor - TNMM"},
+        {"Company Code": "Co04-X", "Company Name": generate_company_name("General") + " XCZ", "City": "Munich", "Country Name": "Germany", "Region": "Europe", "Country Key": "DEU", "Co Currency": "EUR", "Group Currency": "EUR", "Language Key": "EN", "Chart of Accounts": "COA", "TP Segment": "Distributor - TNMM"},
+        {"Company Code": "Co05", "Company Name": generate_company_name("General"), "City": "Oslo", "Country Name": "Norway", "Region": "Europe", "Country Key": "NOR", "Co Currency": "NOK", "Group Currency": "EUR", "Language Key": "EN", "Chart of Accounts": "COA", "TP Segment": "Distributor - TNMM"},
+        {"Company Code": "Co11", "Company Name": generate_company_name("General"), "City": "New York", "Country Name": "United States", "Region": "Americas", "Country Key": "USA", "Co Currency": "USD", "Group Currency": "EUR", "Language Key": "EN", "Chart of Accounts": "COA", "TP Segment": "Distributor - TNMM"},
+        {"Company Code": "Co12", "Company Name": generate_company_name("General"), "City": "Toronto", "Country Name": "Canada", "Region": "Americas", "Country Key": "CAN", "Co Currency": "CAD", "Group Currency": "EUR", "Language Key": "EN", "Chart of Accounts": "COA", "TP Segment": "Distributor - TNMM"},
+        {"Company Code": "Co23", "Company Name": generate_company_name("General"), "City": "Dubai", "Country Name": "United Arab Emirates", "Region": "Middle East", "Country Key": "ARE", "Co Currency": "AED", "Group Currency": "EUR", "Language Key": "EN", "Chart of Accounts": "COA", "TP Segment": "Distributor - TNMM"},
+        {"Company Code": "Co27", "Company Name": generate_company_name("General"), "City": "Tokyo", "Country Name": "Japan", "Region": "Asia Pacific", "Country Key": "JPN", "Co Currency": "JPY", "Group Currency": "EUR", "Language Key": "EN", "Chart of Accounts": "COA", "TP Segment": "Distributor - TNMM"},
+        {"Company Code": "Co28", "Company Name": generate_company_name("General"), "City": "Mumbai", "Country Name": "India", "Region": "Asia Pacific", "Country Key": "IND", "Co Currency": "INR", "Group Currency": "EUR", "Language Key": "EN", "Chart of Accounts": "COA", "TP Segment": "Distributor - TNMM"},
+        {"Company Code": "Co29", "Company Name": generate_company_name("General"), "City": "Singapore", "Country Name": "Singapore", "Region": "Asia Pacific", "Country Key": "SGP", "Co Currency": "SGD", "Group Currency": "EUR", "Language Key": "EN", "Chart of Accounts": "COA", "TP Segment": "Distributor - TNMM"},
+        {"Company Code": "Co21", "Company Name": generate_company_name("General"), "City": "Bangkok", "Country Name": "Thailand", "Region": "Asia Pacific", "Country Key": "THA", "Co Currency": "THB", "Group Currency": "EUR", "Language Key": "EN", "Chart of Accounts": "COA", "TP Segment": "Distributor - TNMM"},
+        {"Company Code": "Co24", "Company Name": generate_company_name("General"), "City": "Kuala Lumpur", "Country Name": "Malaysia", "Region": "Asia Pacific", "Country Key": "MYS", "Co Currency": "MYR", "Group Currency": "EUR", "Language Key": "EN", "Chart of Accounts": "COA", "TP Segment": "Distributor - TNMM"},
+        {"Company Code": "Co33", "Company Name": generate_company_name("General"), "City": "Buenos Aires", "Country Name": "Argentina", "Region": "Americas", "Country Key": "ARG", "Co Currency": "ARS", "Group Currency": "EUR", "Language Key": "EN", "Chart of Accounts": "COA", "TP Segment": "Distributor - TNMM"},
+        {"Company Code": "Co34", "Company Name": generate_company_name("General"), "City": "São Paulo", "Country Name": "Brazil", "Region": "Americas", "Country Key": "BRA", "Co Currency": "BRL", "Group Currency": "EUR", "Language Key": "EN", "Chart of Accounts": "COA", "TP Segment": "Distributor - TNMM"},
+        {"Company Code": "Co35", "Company Name": generate_company_name("General"), "City": "Bogotá", "Country Name": "Colombia", "Region": "Americas", "Country Key": "COL", "Co Currency": "COP", "Group Currency": "EUR", "Language Key": "EN", "Chart of Accounts": "COA", "TP Segment": "Distributor - TNMM"},
+        {"Company Code": "Co46", "Company Name": generate_company_name("General"), "City": "Johannesburg", "Country Name": "South Africa", "Region": "Africa", "Country Key": "ZAF", "Co Currency": "ZAR", "Group Currency": "EUR", "Language Key": "EN", "Chart of Accounts": "COA", "TP Segment": "Distributor - TNMM"},
+        {"Company Code": "Co41", "Company Name": generate_company_name("General"), "City": "Luanda", "Country Name": "Angola", "Region": "Africa", "Country Key": "AGO", "Co Currency": "AOA", "Group Currency": "EUR", "Language Key": "EN", "Chart of Accounts": "COA", "TP Segment": "Distributor - TNMM"},
+        {"Company Code": "Co52", "Company Name": generate_company_name("General"), "City": "Sydney", "Country Name": "Australia", "Region": "Asia Pacific", "Country Key": "AUS", "Co Currency": "AUD", "Group Currency": "EUR", "Language Key": "EN", "Chart of Accounts": "COA", "TP Segment": "Distributor - TNMM"}
+    ]
+    
+    companies_df = pd.DataFrame(companies)
+    
+    tp_segments = []
+    for i, row in companies_df.iterrows():
+        tp_segments.append({
+            "Company Code": row["Company Code"],
+            "#": "",
+            "Pri": 1,
+            "TP Segment": row["TP Segment"],
+            "Column1": "",
+            "Type of Sales": "3P",
+            "Valuation Class": "OMP",
+            "Trading Partner?": "No",
+            "Material Number": "*",
+            "Valid from": f"01.01.{year}",
+            "Valid to": f"31.12.{year}"
+        })
+    df_c_tp_segment = pd.DataFrame(tp_segments)
+    
+    # Remove the TP Segment column from companies_df to match original schema
+    companies_df = companies_df.drop(columns=["TP Segment"])
+    
+    return companies_df, df_c_tp_segment
+
 def generate_tp_adjustments(sales_tx, opex_tx, companies_df, p_total, df_c_tp_segment, year=2025):
     """
     Generate symmetric operational TP adjustment line items formatted exactly like standard opex/sales rows.
