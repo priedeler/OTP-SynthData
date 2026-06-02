@@ -615,7 +615,7 @@ with tab3:
             export_df = report['companies'].copy()
             
             # 2. Pre-calculate compliance rates
-            df_comp = p_total.merge(df_benchmark[["TP Function", "Q1", "Q3"]].rename(columns={"TP Function": "TP Segment"}), on="TP Segment", how="left")
+            df_comp = p_total.copy()
             pre_margins = []
             post_margins = []
             companies_list = []
@@ -639,7 +639,7 @@ with tab3:
                 if pli == "OM" and rev > 0:
                     pre_val = pre_op / rev
                     post_val = final_op / rev
-                elif pli == "NCP" and (cogs + opex) > 0:
+                elif pli in ["NCP", "Mark-up"] and (cogs + opex) > 0:
                     pre_val = pre_op / (cogs + opex)
                     post_val = final_op / (cogs + opex)
                 elif pli == "Gross Margin" and rev > 0:
@@ -714,7 +714,7 @@ with tab3:
             ic_diff = abs(total_ic_rev - total_ic_exp)
             ic_check = f"Passed ({fmt_num(ic_diff)})" if ic_diff < 1.0 else f"Failed ({fmt_num(ic_diff)})"
             
-            tp_adj_net = report['tp_adjustments']['Total Amount'].sum() if 'tp_adjustments' in report else 0.0
+            tp_adj_net = report['tp_adjustments']['Total Amount'].sum() if ('tp_adjustments' in report and not report['tp_adjustments'].empty) else 0.0
             tp_check = fmt_num(tp_adj_net) if abs(tp_adj_net) >= 0.01 else "0 € (Bal)"
 
             # Validation Metrics Panel

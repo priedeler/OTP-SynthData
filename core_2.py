@@ -36,9 +36,9 @@ def generate_materials(num_materials, brands=None, mat_classes=None, year=2025):
         brand = random.choice(brands) if isinstance(brands, list) and brands else "Generic"
         
         raw_price = round(random.uniform(5.0, 50.0), 2)
-        ic_price = round(raw_price * random.uniform(1.80, 2.20), 2)
-        mer_price = round(ic_price * random.uniform(1.50, 1.80), 2)
-        tp_price = round(mer_price * random.uniform(1.30, 1.60), 2)
+        ic_price = round(raw_price * random.uniform(1.18, 1.22), 2)
+        mer_price = round(ic_price * random.uniform(1.45, 1.55), 2)
+        tp_price = round(mer_price * random.uniform(1.26, 1.30), 2)
         
         qty = random.randint(100, 5000)
         
@@ -181,11 +181,13 @@ def generate_transactions(companies_df, materials_df, pnl_df, num_transactions, 
         # A. COMMODITY TRADER LEG (Optional raw material supply chain leg)
         trader_seller = None
         target_manufacturer = None
+        trader_price_sales = None
         if commodity_traders and manufacturers:
             trader_seller = random.choice(commodity_traders)
             target_manufacturer = random.choice(manufacturers)
             
-            price_sales = material["IC Sales Price"]
+            trader_price_sales = round(material["Raw Material Price"] * random.uniform(1.02, 1.05), 2)
+            price_sales = trader_price_sales
             price_cogs = material["Raw Material Price"]
             revenue = round(qty * price_sales, 2)
             cogs = round(qty * price_cogs, 2)
@@ -227,13 +229,7 @@ def generate_transactions(companies_df, materials_df, pnl_df, num_transactions, 
         if manufacturers:
             seller = target_manufacturer if (trader_seller is not None) else random.choice(manufacturers)
             
-            if principals and distributors:
-                if random.random() < 0.20:
-                    buyer = random.choice(distributors)
-                else:
-                    buyer = random.choice(principals)
-                type_sales = "IC"
-            elif principals:
+            if principals:
                 buyer = random.choice(principals)
                 type_sales = "IC"
             elif distributors:
@@ -244,7 +240,7 @@ def generate_transactions(companies_df, materials_df, pnl_df, num_transactions, 
                 type_sales = "3P"
             
             price_sales = material["IC Sales Price"] if buyer != "EXTERNAL" else material["3P Sales Price"]
-            price_cogs = material["IC Sales Price"] if (trader_seller is not None) else material["Raw Material Price"]
+            price_cogs = trader_price_sales if (trader_seller is not None) else material["Raw Material Price"]
             cogs_type = "IC" if (trader_seller is not None) else "3P"
             
             revenue = round(qty * price_sales, 2)
@@ -474,8 +470,17 @@ def generate_transactions(companies_df, materials_df, pnl_df, num_transactions, 
     
     for code, revenue in revenue_tracker.items():
         segment = co_to_segment.get(code, "Unknown")
-        # Minimum OPEX if no revenue
-        annual_opex = revenue * random.uniform(opex_min, opex_max) if revenue > 0 else random.uniform(50000, 200000)
+        # Ensure organic margins meet target margins
+        if segment in ["Routine Manufacturer", "Cost Plus Manufacturer"]:
+            annual_opex = revenue * random.uniform(0.09, 0.11) if revenue > 0 else random.uniform(50000, 200000)
+        elif "Distributor" in segment:
+            annual_opex = revenue * random.uniform(0.17, 0.20) if revenue > 0 else random.uniform(50000, 200000)
+        elif segment == "IP Principal":
+            annual_opex = revenue * random.uniform(0.15, 0.25) if revenue > 0 else random.uniform(1000000, 2000000)
+        elif segment == "Service Provider":
+            annual_opex = revenue * random.uniform(0.94, 0.96) if revenue > 0 else random.uniform(50000, 200000)
+        else:
+            annual_opex = revenue * random.uniform(opex_min, opex_max) if revenue > 0 else random.uniform(50000, 200000)
             
         amount_per_entry = annual_opex / (len(opex_accounts) * 12)
 
@@ -711,12 +716,17 @@ def calculate_allocations(sales_tx, opex_tx, companies_df, df_benchmark, df_c_tp
     p_total["OPEX"] = p_total["OPEX"].abs()
     
     p_total = p_total.merge(df_c_tp_segment[["Company Code", "TP Segment"]], on="Company Code", how="left")
-    p_total = p_total.merge(df_benchmark[["TP Function", "Median", "PLI Name", "TP Method"]], left_on="TP Segment", right_on="TP Function", how="left")
+    p_total = p_total.merge(df_benchmark[["TP Function", "Median", "PLI Name", "TP Method", "Q1", "Q3"]], left_on="TP Segment", right_on="TP Function", how="left")
     p_total.rename(columns={"Median": "Target Margin"}, inplace=True)
     
     # Calculate Base Profits
     p_total["Gross Profit"] = p_total["Revenue"] - p_total["COGS"]
     p_total["Preliminary Operating Profit"] = p_total["Gross Profit"] - p_total["OPEX"]
+    
+    # 0. Identify IC Nexus
+    # An entity is part of the IC supply chain if it has ANY IC Sales or IC COGS
+    ic_nexus_companies = sales_tx[(sales_tx["TypeOfSales"] == "IC") | (sales_tx["GL Account COGS"] == "500000")]["Company Code"].unique()
+    p_total["Has IC Nexus"] = p_total["Company Code"].isin(ic_nexus_companies)
     
     is_principal = p_total["TP Method"] == "PSM"
     is_routine = ~is_principal
@@ -738,13 +748,36 @@ def calculate_allocations(sales_tx, opex_tx, companies_df, df_benchmark, df_c_tp
     tnmm_om_mask = (p_total["TP Method"] == "TNMM") & (p_total["PLI Name"] == "OM")
     p_total.loc[tnmm_om_mask, "Target OP"] = p_total["Revenue"] * p_total["Target Margin"]
     
-    # NCP
-    tnmm_ncp_mask = (p_total["TP Method"] == "TNMM") & (p_total["PLI Name"] == "NCP")
+    # NCP & Service Mark-up
+    tnmm_ncp_mask = (p_total["TP Method"] == "TNMM") & (p_total["PLI Name"].isin(["NCP", "Mark-up"]))
     p_total.loc[tnmm_ncp_mask, "Target OP"] = (p_total["COGS"] + p_total["OPEX"]) * p_total["Target Margin"]
 
-    # 4. CUP -> Managed at the transactional level, no year-end OP adjustment needed
-    cup_mask = p_total["TP Method"] == "CUP"
-    p_total.loc[cup_mask, "Target OP"] = p_total["Preliminary Operating Profit"]
+    # 4. CUP and Pure 3P Carve-outs -> Managed at the transactional level, no year-end OP adjustment needed
+    # Entities with NO IC Nexus (pure 3P) are structurally carved out of the TP true-up mechanism
+    no_adjustment_mask = (p_total["TP Method"] == "CUP") | (~p_total["Has IC Nexus"])
+    p_total.loc[no_adjustment_mask, "Target OP"] = p_total["Preliminary Operating Profit"]
+
+    # IQR Safe Harbor (OECD Guidelines)
+    p_total["Preliminary PLI"] = 0.0
+    
+    # Calculate actual Preliminary PLI depending on the method
+    om_mask = p_total["PLI Name"] == "OM"
+    p_total.loc[om_mask & (p_total["Revenue"] > 0), "Preliminary PLI"] = p_total["Preliminary Operating Profit"] / p_total["Revenue"]
+    
+    ncp_mask = p_total["PLI Name"].isin(["NCP", "Mark-up"])
+    p_total.loc[ncp_mask & ((p_total["COGS"] + p_total["OPEX"]) > 0), "Preliminary PLI"] = p_total["Preliminary Operating Profit"] / (p_total["COGS"] + p_total["OPEX"])
+    
+    gm_mask = p_total["PLI Name"] == "Gross Margin"
+    p_total.loc[gm_mask & (p_total["Revenue"] > 0), "Preliminary PLI"] = p_total["Gross Profit"] / p_total["Revenue"]
+    
+    gmu_mask = p_total["PLI Name"] == "Gross Mark-up"
+    p_total.loc[gmu_mask & (p_total["COGS"] > 0), "Preliminary PLI"] = p_total["Gross Profit"] / p_total["COGS"]
+
+    # If the preliminary PLI is within the arm's length range (Q1 to Q3), NO true-up is required
+    safe_harbor_mask = is_routine & (~p_total["Q1"].isna()) & (~p_total["Q3"].isna()) & (p_total["Preliminary PLI"] >= p_total["Q1"]) & (p_total["Preliminary PLI"] <= p_total["Q3"])
+    
+    # Override Target OP to equal Preliminary OP, so the resulting TP Adjustment is 0
+    p_total.loc[safe_harbor_mask, "Target OP"] = p_total["Preliminary Operating Profit"]
 
     # Calculate Adjustments for Routine Entities
     p_total["TP Adjustment"] = 0.0
